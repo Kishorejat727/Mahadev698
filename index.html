@@ -421,7 +421,7 @@ textarea{resize:none;height:64px;line-height:1.4}
 <!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, orderBy, enableIndexedDbPersistence, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, enableIndexedDbPersistence, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
 
 const firebaseConfig = {
@@ -823,12 +823,21 @@ window.clearLoan = async function(firestoreId) {
   if (!releaseAmount || Number(releaseAmount)<=0) { toast('Enter the total amount collected','error'); return; }
   try {
     setSyncStatus('syncing');
-    await setDoc(doc(db,'loans',firestoreId), {
-      ...loan, firestoreId:undefined,
-      status:'RELEASED', releaseDate, releaseAmount:Number(releaseAmount)
+    await updateDoc(doc(db,'loans',firestoreId), {
+      status: 'RELEASED',
+      releaseDate: releaseDate,
+      releaseAmount: Number(releaseAmount)
     });
     closeDetail(); toast('Loan released successfully','success');
-  } catch(e) { toast('Error saving — check connection','error'); setSyncStatus('offline'); }
+  } catch(e) {
+    console.error('clearLoan error:', e);
+    if (e.code === 'permission-denied') {
+      toast('Permission denied — update Firestore rules','error');
+    } else {
+      toast('Error saving — check your internet connection','error');
+      setSyncStatus('offline');
+    }
+  }
 }
 
 window.confirmDelete = function(firestoreId) {
