@@ -158,6 +158,59 @@ textarea{resize:none;height:64px;line-height:1.4}
 .tl-pill.active{background:#1C1000;color:var(--amber)}
 .tl-pill.released{background:#081A0F;color:var(--green)}
 
+/* VAULT TOGGLE */
+.vault-toggle{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.vault-opt{padding:10px 0;text-align:center;font-size:13px;font-weight:500;color:var(--text3);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px}
+.vault-opt svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.vault-opt.active.local{background:#0A1A2A;color:#60A8E0;border:1px solid #1A4A7A}
+.vault-opt.active.bank{background:#1A0A2A;color:#C060E0;border:1px solid #5A1A8A}
+.vault-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border-radius:20px;font-weight:500}
+.vault-badge.local{background:#0A1A2A;color:#60A8E0;border:1px solid #1A4A7A}
+.vault-badge.bank{background:#1A0A2A;color:#C060E0;border:1px solid #5A1A8A}
+.vault-badge svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* AUDIT SCREEN */
+.audit-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.audit-vault-card{border-radius:var(--r);padding:12px;border:1px solid}
+.audit-vault-card.local{background:#0A1A2A;border-color:#1A4A7A}
+.audit-vault-card.bank{background:#1A0A2A;border-color:#5A1A8A}
+.audit-vault-title{font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:5px}
+.audit-vault-title svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.audit-vault-card.local .audit-vault-title{color:#60A8E0}
+.audit-vault-card.bank .audit-vault-title{color:#C060E0}
+.audit-vault-stat{font-family:var(--mono);font-size:22px;font-weight:500;color:var(--text)}
+.audit-vault-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.audit-progress{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:14px 16px}
+.audit-progress-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.audit-progress-title{font-size:13px;font-weight:500;color:var(--text)}
+.audit-progress-pct{font-family:var(--mono);font-size:13px;color:var(--gold)}
+.audit-bar-wrap{height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.audit-bar-fill{height:100%;background:var(--gold);border-radius:3px;transition:width .4s ease}
+.audit-item{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:12px 14px;display:flex;align-items:center;gap:12px;transition:all .2s}
+.audit-item.verified-local{border-color:#1A4A7A;background:#0A1A2A18}
+.audit-item.verified-bank{border-color:#5A1A8A;background:#1A0A2A18}
+.audit-check{width:36px;height:36px;border-radius:50%;border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:all .2s}
+.audit-check svg{width:16px;height:16px;stroke:var(--text3);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;transition:all .2s}
+.audit-item.verified-local .audit-check{background:#0A1A2A;border-color:#60A8E0}
+.audit-item.verified-local .audit-check svg{stroke:#60A8E0}
+.audit-item.verified-bank .audit-check{background:#1A0A2A;border-color:#C060E0}
+.audit-item.verified-bank .audit-check svg{stroke:#C060E0}
+.audit-item-info{flex:1;min-width:0}
+.audit-item-name{font-size:13px;font-weight:500;color:var(--text)}
+.audit-item-meta{font-size:11px;color:var(--text3);margin-top:2px}
+.audit-item-right{text-align:right;flex-shrink:0}
+.audit-item-weight{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--text)}
+.audit-filter-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.audit-filter-tabs::-webkit-scrollbar{display:none}
+.audit-filter-tab{padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid var(--border);color:var(--text3);cursor:pointer;white-space:nowrap;transition:all .15s;flex-shrink:0}
+.audit-filter-tab.active{background:var(--gold);border-color:var(--gold);color:#1A1208}
+.audit-session-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:12px 14px}
+.audit-session-date{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px}
+.audit-session-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.audit-session-stat{text-align:center}
+.audit-session-val{font-family:var(--mono);font-size:16px;font-weight:500;color:var(--text)}
+.audit-session-lbl{font-size:10px;color:var(--text3)}
+
 .due-tabs{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
 .due-tab{flex:1;padding:8px 0;font-size:12px;font-weight:500;text-align:center;color:var(--text3);cursor:pointer;transition:all .15s;border-right:1px solid var(--border)}
 .due-tab:last-child{border-right:none}
@@ -343,6 +396,19 @@ textarea{resize:none;height:64px;line-height:1.4}
               <div class="error-msg" id="err-amount"></div>
             </div>
           </div>
+          <div class="input-group">
+            <label class="lbl">Vault location *</label>
+            <div class="vault-toggle">
+              <div class="vault-opt local active" id="vault-opt-local" onclick="selectVault('local')">
+                <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                Local Vault
+              </div>
+              <div class="vault-opt bank" id="vault-opt-bank" onclick="selectVault('bank')">
+                <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                Bank Vault
+              </div>
+            </div>
+          </div>
         </div>
         <button class="submit-btn" id="submit-btn" onclick="submitLoan()">
           <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -363,6 +429,73 @@ textarea{resize:none;height:64px;line-height:1.4}
       </div>
     </div>
 
+    <!-- AUDIT -->
+    <div id="screen-audit" class="screen">
+      <div class="screen-body">
+        <!-- Summary cards -->
+        <div class="sec-label">Vault summary</div>
+        <div class="audit-summary">
+          <div class="audit-vault-card local">
+            <div class="audit-vault-title">
+              <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+              Local Vault
+            </div>
+            <div class="audit-vault-stat" id="audit-local-count">—</div>
+            <div class="audit-vault-sub" id="audit-local-weight">— g held</div>
+          </div>
+          <div class="audit-vault-card bank">
+            <div class="audit-vault-title">
+              <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+              Bank Vault
+            </div>
+            <div class="audit-vault-stat" id="audit-bank-count">—</div>
+            <div class="audit-vault-sub" id="audit-bank-weight">— g held</div>
+          </div>
+        </div>
+
+        <!-- Audit progress -->
+        <div class="audit-progress" id="audit-progress-wrap" style="display:none">
+          <div class="audit-progress-header">
+            <div class="audit-progress-title" id="audit-progress-label">Audit in progress</div>
+            <div class="audit-progress-pct" id="audit-progress-pct">0%</div>
+          </div>
+          <div class="audit-bar-wrap"><div class="audit-bar-fill" id="audit-bar" style="width:0%"></div></div>
+        </div>
+
+        <!-- Start / End audit buttons -->
+        <div style="display:flex;gap:8px" id="audit-action-row">
+          <button class="submit-btn" id="audit-start-btn" onclick="startAudit()" style="flex:1">
+            <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:#1A1208;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            Start Audit
+          </button>
+          <button class="btn danger" id="audit-end-btn" onclick="endAudit()" style="flex:1;display:none;padding:14px 0;font-size:14px">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            End Audit
+          </button>
+        </div>
+
+        <!-- Filter tabs -->
+        <div class="audit-filter-tabs" id="audit-filter-tabs" style="display:none">
+          <div class="audit-filter-tab active" onclick="setAuditFilter('all')">All items</div>
+          <div class="audit-filter-tab" onclick="setAuditFilter('local')">
+            <span style="color:#60A8E0">⬤</span> Local Vault
+          </div>
+          <div class="audit-filter-tab" onclick="setAuditFilter('bank')">
+            <span style="color:#C060E0">⬤</span> Bank Vault
+          </div>
+          <div class="audit-filter-tab" onclick="setAuditFilter('unverified')">Unverified</div>
+          <div class="audit-filter-tab" onclick="setAuditFilter('unassigned')">Unassigned</div>
+        </div>
+
+        <!-- Audit item list -->
+        <div id="audit-list"></div>
+
+        <!-- Past audit history -->
+        <div class="sec-label" id="audit-history-label">Past audits</div>
+        <div id="audit-history"></div>
+      </div>
+    </div>
+
     <!-- SEARCH -->
     <div id="screen-search" class="screen">
       <div class="screen-body">
@@ -375,10 +508,10 @@ textarea{resize:none;height:64px;line-height:1.4}
     </div>
   </div>
 
-  <div id="nav">
+  <div id="nav" style="font-size:9.5px">
     <div class="nav-item active" onclick="switchScreen('dashboard')" id="nav-dashboard">
       <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-      Dashboard
+      Home
     </div>
     <div class="nav-item" onclick="switchScreen('newloan')" id="nav-newloan">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
@@ -388,6 +521,10 @@ textarea{resize:none;height:64px;line-height:1.4}
       <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
       <span id="due-badge-nav" class="nav-badge" style="display:none">0</span>
       Due
+    </div>
+    <div class="nav-item" onclick="switchScreen('audit')" id="nav-audit">
+      <svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+      Audit
     </div>
     <div class="nav-item" onclick="switchScreen('search')" id="nav-search">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -545,6 +682,7 @@ onSnapshot(q, (snapshot) => {
   const activeScreen = document.querySelector('.screen.active');
   if (activeScreen && activeScreen.id === 'screen-due') renderDueList();
   if (activeScreen && activeScreen.id === 'screen-search') doSearch();
+  if (activeScreen && activeScreen.id === 'screen-audit') { refreshAuditSummary(); if(auditActive) renderAuditList(); }
 }, (err) => {
   console.error(err);
   setSyncStatus('offline');
@@ -666,6 +804,7 @@ function loanCard(loan, showActions=false) {
       <div><div class="field-k">Gold weight</div><div class="field-v">${Number(loan.weight).toFixed(2)} g</div></div>
       <div><div class="field-k">Items</div><div class="field-v">${esc((loan.items||'—').substring(0,28))}</div></div>
       <div><div class="field-k">Disbursed</div><div class="field-v money">${fmtMoneyFull(loan.amount)}</div></div>
+      ${loan.vault&&loan.status==='ACTIVE'?`<div style="grid-column:span 2"><span class="vault-badge ${loan.vault}">${loan.vault==='local'?'🔒 Local Vault':'🏦 Bank Vault'}</span></div>`:''}
     </div>
     ${actions}
   </div>`;
@@ -802,6 +941,18 @@ window.openDetail = function(firestoreId) {
         <div><div class="field-k">Days active</div><div class="field-v">${loan.status==='RELEASED'?fmtDate(loan.releaseDate):days+' days'}</div></div>
       </div>
       ${loan.items?`<div class="divider"></div><div class="field-k">Items</div><div class="field-v" style="margin-top:4px">${esc(loan.items)}</div>`:''}
+      ${loan.status==='ACTIVE'?`
+      <div class="divider"></div>
+      <div class="field-k" style="margin-bottom:6px">Vault location</div>
+      <div class="vault-toggle">
+        <div class="vault-opt local${(!loan.vault||loan.vault==='local')?' active':''}" onclick="changeVault('${firestoreId}','local')">
+          <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>Local Vault
+        </div>
+        <div class="vault-opt bank${loan.vault==='bank'?' active':''}" onclick="changeVault('${firestoreId}','bank')">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Bank Vault
+        </div>
+      </div>`:''}
+      ${loan.status==='RELEASED'&&loan.vault?`<div class="divider"></div><div class="field-k">Was in vault</div><div class="vault-badge ${loan.vault}" style="display:inline-flex;margin-top:4px">${loan.vault==='local'?'Local Vault':'Bank Vault'}</div>`:''}
     </div>
     ${commsSection}
     ${clearSection}
@@ -870,6 +1021,9 @@ function clearLoanForm() {
     const el=document.getElementById(id); if(el){el.style.display='none';el.textContent='';}
   });
   capturedPhoto = null;
+  selectedVault = 'local';
+  document.getElementById('vault-opt-local').classList.add('active');
+  document.getElementById('vault-opt-bank').classList.remove('active');
   document.getElementById('photo-icon-wrap').innerHTML = `<svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:var(--text3);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>`;
 }
 
@@ -915,6 +1069,7 @@ window.submitLoan = async function() {
       weight: parseFloat(Number(weight).toFixed(2)),
       amount: parseInt(amount),
       status: 'ACTIVE',
+      vault: selectedVault,
       photo: capturedPhoto || null,
       createdAt: serverTimestamp()
     };
@@ -948,6 +1103,260 @@ window.submitLoan = async function() {
     btn.disabled=false;
     btn.innerHTML=`<svg viewBox="0 0 24 24" style="width:19px;height:19px;stroke:#1A1208;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Submit &amp; Disburse`;
   }
+}
+
+// ── VAULT SELECTION ────────────────────────────────────────────────────────
+let selectedVault = 'local';
+
+window.selectVault = function(v) {
+  selectedVault = v;
+  document.getElementById('vault-opt-local').classList.toggle('active', v==='local');
+  document.getElementById('vault-opt-bank').classList.toggle('active', v==='bank');
+}
+
+window.changeVault = async function(firestoreId, vault) {
+  try {
+    setSyncStatus('syncing');
+    await updateDoc(doc(db,'loans',firestoreId), { vault });
+    toast(`Moved to ${vault==='local'?'Local':'Bank'} Vault`, 'success');
+    // Refresh detail view
+    setTimeout(() => openDetail(firestoreId), 300);
+  } catch(e) {
+    console.error(e);
+    toast('Error updating vault location','error');
+    setSyncStatus('offline');
+  }
+}
+
+// Patch submitLoan to include vault
+const _origSubmit = window.submitLoan;
+window.submitLoan = async function() {
+  // vault is captured via selectedVault global at submit time
+  await _origSubmit();
+}
+
+// ── AUDIT ──────────────────────────────────────────────────────────────────
+let auditActive = false;
+let auditVerified = {}; // firestoreId -> true
+let auditFilter = 'all';
+let auditsCol = collection(db, 'audits');
+
+window.setAuditFilter = function(f) {
+  auditFilter = f;
+  document.querySelectorAll('.audit-filter-tab').forEach((t,i) => {
+    const filters = ['all','local','bank','unverified','unassigned'];
+    t.classList.toggle('active', filters[i]===f);
+  });
+  renderAuditList();
+}
+
+function refreshAuditSummary() {
+  const active = allLoans.filter(l=>l.status==='ACTIVE');
+  const local = active.filter(l=>l.vault==='local'||!l.vault);
+  const bank  = active.filter(l=>l.vault==='bank');
+  const localGold = local.reduce((s,l)=>s+Number(l.weight),0);
+  const bankGold  = bank.reduce((s,l)=>s+Number(l.weight),0);
+
+  document.getElementById('audit-local-count').textContent = local.length + ' items';
+  document.getElementById('audit-local-weight').textContent = localGold.toFixed(2) + ' g held';
+  document.getElementById('audit-bank-count').textContent = bank.length + ' items';
+  document.getElementById('audit-bank-weight').textContent = bankGold.toFixed(2) + ' g held';
+}
+
+function updateAuditProgress() {
+  const active = allLoans.filter(l=>l.status==='ACTIVE');
+  const total = active.length;
+  const verified = active.filter(l=>auditVerified[l.firestoreId]).length;
+  const pct = total===0 ? 0 : Math.round(verified/total*100);
+  document.getElementById('audit-progress-pct').textContent = pct + '%';
+  document.getElementById('audit-bar').style.width = pct + '%';
+  document.getElementById('audit-progress-label').textContent =
+    `${verified} of ${total} items verified`;
+}
+
+function renderAuditList() {
+  const cont = document.getElementById('audit-list');
+  const active = allLoans.filter(l=>l.status==='ACTIVE');
+
+  let filtered = active;
+  if (auditFilter==='local') filtered = active.filter(l=>!l.vault||l.vault==='local');
+  else if (auditFilter==='bank') filtered = active.filter(l=>l.vault==='bank');
+  else if (auditFilter==='unverified') filtered = active.filter(l=>!auditVerified[l.firestoreId]);
+  else if (auditFilter==='unassigned') filtered = active.filter(l=>!l.vault);
+
+  if (!auditActive) {
+    cont.innerHTML = '';
+    return;
+  }
+
+  if (!filtered.length) {
+    cont.innerHTML = emptyState('No items in this category.');
+    return;
+  }
+
+  cont.innerHTML = filtered.map(l => {
+    const v = l.vault || 'local';
+    const isVerified = !!auditVerified[l.firestoreId];
+    const verifiedClass = isVerified ? (v==='local'?'verified-local':'verified-bank') : '';
+    return `
+    <div class="audit-item ${verifiedClass}" id="aitem-${l.firestoreId}">
+      <div class="audit-check" onclick="toggleVerify('${l.firestoreId}')">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div class="audit-item-info">
+        <div class="audit-item-name">${esc(l.name)}</div>
+        <div class="audit-item-meta">
+          <span class="vault-badge ${v}" style="font-size:10px;padding:2px 6px">${v==='local'?'Local':'Bank'}</span>
+          · ${esc(l.receiptId)}
+        </div>
+        <div class="audit-item-meta" style="margin-top:2px">${esc((l.items||'—').substring(0,35))}</div>
+      </div>
+      <div class="audit-item-right">
+        <div class="audit-item-weight">${Number(l.weight).toFixed(2)}g</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">${fmtMoneyFull(l.amount)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.toggleVerify = function(firestoreId) {
+  auditVerified[firestoreId] = !auditVerified[firestoreId];
+  const loan = allLoans.find(l=>l.firestoreId===firestoreId);
+  const v = (loan && loan.vault) || 'local';
+  const isVerified = auditVerified[firestoreId];
+  const el = document.getElementById('aitem-' + firestoreId);
+  if (el) {
+    el.className = 'audit-item' + (isVerified?(v==='local'?' verified-local':' verified-bank'):'');
+  }
+  updateAuditProgress();
+}
+
+window.startAudit = function() {
+  auditActive = true;
+  auditVerified = {};
+  auditFilter = 'all';
+  document.getElementById('audit-start-btn').style.display = 'none';
+  document.getElementById('audit-end-btn').style.display = 'flex';
+  document.getElementById('audit-progress-wrap').style.display = 'block';
+  document.getElementById('audit-filter-tabs').style.display = 'flex';
+  document.getElementById('audit-history-label').style.display = 'none';
+  document.getElementById('audit-history').style.display = 'none';
+  document.querySelectorAll('.audit-filter-tab').forEach((t,i)=>t.classList.toggle('active',i===0));
+  updateAuditProgress();
+  renderAuditList();
+  toast('Audit started — verify each item');
+}
+
+window.endAudit = async function() {
+  const active = allLoans.filter(l=>l.status==='ACTIVE');
+  const total = active.length;
+  const verifiedIds = Object.keys(auditVerified).filter(id=>auditVerified[id]);
+  const verified = verifiedIds.length;
+  const missing = active.filter(l=>!auditVerified[l.firestoreId]);
+  const localCount = active.filter(l=>!l.vault||l.vault==='local').length;
+  const bankCount  = active.filter(l=>l.vault==='bank').length;
+  const localGold  = active.filter(l=>!l.vault||l.vault==='local').reduce((s,l)=>s+Number(l.weight),0);
+  const bankGold   = active.filter(l=>l.vault==='bank').reduce((s,l)=>s+Number(l.weight),0);
+
+  const missingList = missing.slice(0,5).map(l=>`• ${l.receiptId} — ${l.name} (${Number(l.weight).toFixed(2)}g)`).join('<br>');
+
+  showModal(`
+    <div class="modal-title">Audit Complete</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;text-align:center">
+      <div style="background:var(--card);border-radius:var(--r);padding:10px;border:1px solid var(--border)">
+        <div style="font-family:var(--mono);font-size:22px;color:var(--green)">${verified}</div>
+        <div style="font-size:10px;color:var(--text3)">Verified</div>
+      </div>
+      <div style="background:var(--card);border-radius:var(--r);padding:10px;border:1px solid var(--border)">
+        <div style="font-family:var(--mono);font-size:22px;color:var(--red)">${total-verified}</div>
+        <div style="font-size:10px;color:var(--text3)">Unverified</div>
+      </div>
+      <div style="background:var(--card);border-radius:var(--r);padding:10px;border:1px solid var(--border)">
+        <div style="font-family:var(--mono);font-size:22px;color:var(--gold)">${total}</div>
+        <div style="font-size:10px;color:var(--text3)">Total</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+      <div style="background:#0A1A2A;border:1px solid #1A4A7A;border-radius:var(--r);padding:10px">
+        <div style="font-size:10px;color:#60A8E0;margin-bottom:4px">🔒 LOCAL VAULT</div>
+        <div style="font-family:var(--mono);font-size:15px;color:var(--text)">${localCount} items</div>
+        <div style="font-size:11px;color:var(--text3)">${localGold.toFixed(2)} g</div>
+      </div>
+      <div style="background:#1A0A2A;border:1px solid #5A1A8A;border-radius:var(--r);padding:10px">
+        <div style="font-size:10px;color:#C060E0;margin-bottom:4px">🏦 BANK VAULT</div>
+        <div style="font-family:var(--mono);font-size:15px;color:var(--text)">${bankCount} items</div>
+        <div style="font-size:11px;color:var(--text3)">${bankGold.toFixed(2)} g</div>
+      </div>
+    </div>
+    ${missing.length>0?`<div style="background:#1A0000;border:1px solid #5A1010;border-radius:var(--r);padding:10px;margin-bottom:16px">
+      <div style="font-size:11px;color:var(--red);font-weight:600;margin-bottom:6px">⚠ ${missing.length} item(s) not physically verified</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.8">${missingList}${missing.length>5?`<br>…and ${missing.length-5} more`:''}</div>
+    </div>`:'<div style="background:#081A0F;border:1px solid #1A5030;border-radius:var(--r);padding:10px;margin-bottom:16px;font-size:13px;color:var(--green)">✓ All items physically verified</div>'}
+    <div class="modal-actions">
+      <div class="btn ghost" onclick="cancelEndAudit()">Continue audit</div>
+      <div class="btn primary" onclick="saveAudit(${total},${verified},${total-verified},${localCount},${bankCount},'${localGold.toFixed(2)}','${bankGold.toFixed(2)}')">Save &amp; Close</div>
+    </div>
+  `);
+}
+
+window.cancelEndAudit = function() {
+  closeModal();
+}
+
+window.saveAudit = async function(total,verified,missing,localCount,bankCount,localGold,bankGold) {
+  try {
+    await addDoc(auditsCol, {
+      date: today(),
+      timestamp: serverTimestamp(),
+      total, verified, missing, localCount, bankCount,
+      localGold: parseFloat(localGold), bankGold: parseFloat(bankGold)
+    });
+    toast('Audit saved successfully','success');
+  } catch(e) { console.error(e); }
+  closeModal();
+  auditActive = false;
+  auditVerified = {};
+  document.getElementById('audit-start-btn').style.display = 'flex';
+  document.getElementById('audit-end-btn').style.display = 'none';
+  document.getElementById('audit-progress-wrap').style.display = 'none';
+  document.getElementById('audit-filter-tabs').style.display = 'none';
+  document.getElementById('audit-history-label').style.display = 'block';
+  document.getElementById('audit-history').style.display = 'block';
+  document.getElementById('audit-list').innerHTML = '';
+  loadAuditHistory();
+}
+
+async function loadAuditHistory() {
+  const cont = document.getElementById('audit-history');
+  try {
+    const snap = await new Promise(res => {
+      const q2 = query(auditsCol, orderBy('timestamp','desc'));
+      const unsub = onSnapshot(q2, s => { unsub(); res(s); });
+    });
+    if (snap.empty) { cont.innerHTML = emptyState('No audits recorded yet.'); return; }
+    cont.innerHTML = snap.docs.map(d => {
+      const a = d.data();
+      return `<div class="audit-session-card" style="margin-bottom:8px">
+        <div class="audit-session-date">${fmtDate(a.date)}</div>
+        <div class="audit-session-stats">
+          <div class="audit-session-stat"><div class="audit-session-val" style="color:var(--green)">${a.verified}</div><div class="audit-session-lbl">Verified</div></div>
+          <div class="audit-session-stat"><div class="audit-session-val" style="color:var(--red)">${a.missing}</div><div class="audit-session-lbl">Missing</div></div>
+          <div class="audit-session-stat"><div class="audit-session-val">${a.total}</div><div class="audit-session-lbl">Total</div></div>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <span class="vault-badge local">🔒 ${a.localCount} items · ${a.localGold}g</span>
+          <span class="vault-badge bank">🏦 ${a.bankCount} items · ${a.bankGold}g</span>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) { cont.innerHTML = emptyState('Could not load audit history.'); }
+}
+
+// Patch switchScreen to load audit data
+const _origSwitch = window.switchScreen;
+window.switchScreen = function(name) {
+  _origSwitch(name);
+  if (name==='audit') { refreshAuditSummary(); loadAuditHistory(); }
 }
 
 // ── INIT ───────────────────────────────────────────────────────────────────
