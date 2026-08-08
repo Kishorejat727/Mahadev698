@@ -990,12 +990,14 @@ window.doSearch = function() {
   if (!matched.length) { cont.innerHTML = emptyState(`No records found for "${esc(q)}".`); return; }
   const byPhone = {};
   matched.forEach(l => {
-    if (!byPhone[l.phone]) byPhone[l.phone] = {name:l.name, phone:l.phone, loans:[]};
-    byPhone[l.phone].loans.push(l);
+    const phone = (l.phone||'').trim();
+    if (!phone) return;
+    if (!byPhone[phone]) byPhone[phone] = {name:l.name, phone, loans:[]};
+    byPhone[phone].loans.push(l);
   });
   cont.innerHTML = Object.values(byPhone).map(cust => {
     const activeL = cust.loans.filter(l=>l.status==='ACTIVE');
-    const exposure = activeL.reduce((s,l)=>s+Number(l.amount),0);
+    const exposure = activeL.reduce((s,l)=>s+(Number(l.amount)||0),0);
     const rows = cust.loans.map(l=>`
       <div class="tl-item" onclick="openDetail('${l.firestoreId}')">
         <div><div class="tl-bill">${esc(l.receiptId)}</div><div class="tl-date">${fmtDate(l.date)} · ${Number(l.weight).toFixed(1)}g</div></div>
@@ -1920,21 +1922,28 @@ function buildMonthlyReport() {
 
 // ── CUSTOMER REPORT ───────────────────────────────────────────────────────
 function buildCustomerReport() {
-  const byPhone = {};
+  const byKey = {};
   allLoans.forEach(l => {
-    if (!byPhone[l.phone]) byPhone[l.phone] = {name:l.name, phone:l.phone, loans:[]};
-    byPhone[l.phone].loans.push(l);
+    const phone = (l.phone || '').trim();
+    const name  = (l.name  || '').trim();
+    if (!phone || !name) return; // skip incomplete records
+    // Group by phone; if same phone has different names, use the most recent name
+    if (!byKey[phone]) byKey[phone] = {name, phone, loans:[]};
+    else byKey[phone].name = name; // keep latest name for this phone
+    byKey[phone].loans.push(l);
   });
-  const customers = Object.values(byPhone).map(c => {
-    const active   = c.loans.filter(l=>l.status==='ACTIVE');
-    const released = c.loans.filter(l=>l.status==='RELEASED');
-    const exposure = active.reduce((s,l)=>s+Number(l.amount),0);
-    const totalBorrowed = c.loans.reduce((s,l)=>s+Number(l.amount),0);
-    const avgDur = released.length ? Math.round(released.reduce((s,l)=>{
-      if (!l.releaseDate) return s;
-      return s + Math.floor((new Date(l.releaseDate)-new Date(l.date))/86400000);
-    },0)/released.length) : null;
-    return {...c, active:active.length, released:released.length, exposure, totalBorrowed, avgDur, total:c.loans.length};
+  const customers = Object.values(byKey).map(c => {
+    const active   = c.loans.filter(l => l.status === 'ACTIVE');
+    const released = c.loans.filter(l => l.status === 'RELEASED');
+    const exposure     = active.reduce((s,l)   => s + (Number(l.amount)||0), 0);
+    const totalBorrowed= c.loans.reduce((s,l)  => s + (Number(l.amount)||0), 0);
+    const avgDur = released.length ? Math.round(
+      released.reduce((s,l) => {
+        if (!l.releaseDate || !l.date) return s;
+        return s + Math.floor((new Date(l.releaseDate) - new Date(l.date)) / 86400000);
+      }, 0) / released.length
+    ) : null;
+    return { ...c, active: active.length, released: released.length, exposure, totalBorrowed, avgDur, total: c.loans.length };
   });
 
   const topExposure  = [...customers].sort((a,b)=>b.exposure-a.exposure).slice(0,8);
