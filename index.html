@@ -247,6 +247,19 @@ textarea{resize:none;height:64px;line-height:1.4}
 .clear-form{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:14px 16px;display:flex;flex-direction:column;gap:12px}
 .clear-form h3{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:2px}
 
+/* ALL BILLS */
+.bills-filter-btn{flex-shrink:0;padding:5px 12px;font-size:11px;font-weight:500;border-radius:20px;border:1px solid var(--border);color:var(--text3);cursor:pointer;transition:all .15s;white-space:nowrap;background:var(--surface)}
+.bills-filter-btn.active{background:var(--gold);border-color:var(--gold);color:#1A1208}
+.bill-row{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:12px 14px;margin-bottom:8px}
+.bill-row-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
+.bill-row-id{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.bill-row-name{font-size:14px;font-weight:500;color:var(--text);margin-top:2px}
+.bill-row-meta{display:flex;gap:12px;margin-bottom:10px}
+.bill-row-meta-item{font-size:11px;color:var(--text3)}
+.bill-row-meta-item span{color:var(--text2);font-weight:500}
+.bill-row-meta-item.money span{color:var(--gold);font-family:var(--mono)}
+.bill-row-actions{display:flex;gap:7px}
+
 /* REPORTS SCREEN */
 .rpt-tabs{display:flex;gap:0;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border);margin:0 -16px;padding:0 16px}
 .rpt-tabs::-webkit-scrollbar{display:none}
@@ -393,7 +406,13 @@ textarea{resize:none;height:64px;line-height:1.4}
             <div class="alert-count red" id="count-critical">0</div>
           </div>
         </div>
-        <div class="sec-label">Recent loans</div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div class="sec-label">Recent loans</div>
+          <div onclick="openAllBills()" style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:500;color:var(--gold);cursor:pointer;padding:4px 10px;border:1px solid var(--gold-dim);border-radius:20px;background:var(--amber-bg,#1A1000)">
+            <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            View all bills
+          </div>
+        </div>
         <div id="dash-recent"><div class="empty"><p>Loading…</p></div></div>
       </div>
     </div>
@@ -614,6 +633,43 @@ textarea{resize:none;height:64px;line-height:1.4}
   </div>
   <div class="gold-rule"></div>
   <div id="detail-body"></div>
+</div>
+
+<!-- ALL BILLS OVERLAY -->
+<div id="bills-overlay" style="position:fixed;inset:0;background:var(--bg);z-index:50;display:none;flex-direction:column;max-width:480px;margin:0 auto">
+  <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0">
+    <button onclick="closeAllBills()" style="background:none;border:none;color:var(--text2);cursor:pointer;padding:4px;display:flex;align-items:center;gap:5px;font-size:14px;font-family:var(--font)">
+      <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><polyline points="15 18 9 12 15 6"/></svg>Back
+    </button>
+    <div style="flex:1;font-size:14px;font-weight:500;color:var(--text)">All Bills <span id="bills-count" style="font-family:var(--mono);font-size:12px;color:var(--text3)"></span></div>
+  </div>
+  <div class="gold-rule"></div>
+  <!-- search + filters -->
+  <div style="padding:10px 16px 0;flex-shrink:0;display:flex;flex-direction:column;gap:8px">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" id="bills-search" placeholder="Search bill ID, name, phone…" oninput="renderBillsList()" autocorrect="off" autocomplete="off">
+    </div>
+    <div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px" id="bills-filter-row">
+      <div class="bills-filter-btn active" onclick="setBillsFilter('all')" id="bf-all">All</div>
+      <div class="bills-filter-btn" onclick="setBillsFilter('active')" id="bf-active">Active</div>
+      <div class="bills-filter-btn" onclick="setBillsFilter('overdue')" id="bf-overdue">Overdue</div>
+      <div class="bills-filter-btn" onclick="setBillsFilter('critical')" id="bf-critical">Critical</div>
+      <div class="bills-filter-btn" onclick="setBillsFilter('released')" id="bf-released">Released</div>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Sort:</span>
+      <select id="bills-sort" onchange="renderBillsList()" style="flex:1;font-size:12px;padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text)">
+        <option value="date-desc">Newest first</option>
+        <option value="date-asc">Oldest first</option>
+        <option value="amount-desc">Amount ↑</option>
+        <option value="amount-asc">Amount ↓</option>
+        <option value="name-asc">Name A–Z</option>
+        <option value="days-desc">Most overdue</option>
+      </select>
+    </div>
+  </div>
+  <div id="bills-list" style="flex:1;overflow-y:auto;padding:10px 16px 20px"></div>
 </div>
 
 <!-- MODAL -->
@@ -1528,6 +1584,144 @@ const _origSwitch = window.switchScreen;
 window.switchScreen = function(name) {
   _origSwitch(name);
   if (name==='audit') { refreshAuditSummary(); loadAuditHistory(); }
+}
+
+// ── ALL BILLS ──────────────────────────────────────────────────────────────
+let billsFilter = 'all';
+
+window.openAllBills = function() {
+  billsFilter = 'all';
+  document.getElementById('bills-search').value = '';
+  document.getElementById('bills-sort').value = 'date-desc';
+  ['all','active','overdue','critical','released'].forEach(f => {
+    document.getElementById('bf-'+f).classList.toggle('active', f === 'all');
+  });
+  renderBillsList();
+  document.getElementById('bills-overlay').style.display = 'flex';
+}
+
+window.closeAllBills = function() {
+  document.getElementById('bills-overlay').style.display = 'none';
+}
+
+window.setBillsFilter = function(f) {
+  billsFilter = f;
+  ['all','active','overdue','critical','released'].forEach(id => {
+    document.getElementById('bf-'+id).classList.toggle('active', id === f);
+  });
+  renderBillsList();
+}
+
+window.renderBillsList = function() {
+  const q      = (document.getElementById('bills-search').value||'').trim().toLowerCase();
+  const sort   = document.getElementById('bills-sort').value;
+  const cont   = document.getElementById('bills-list');
+
+  let list = [...allLoans];
+
+  // Filter by status bucket
+  if (billsFilter === 'active')   list = list.filter(l => l.status==='ACTIVE' && ['active','due'].includes(loanStatus(l)));
+  if (billsFilter === 'overdue')  list = list.filter(l => l.status==='ACTIVE' && loanStatus(l)==='overdue');
+  if (billsFilter === 'critical') list = list.filter(l => l.status==='ACTIVE' && loanStatus(l)==='critical');
+  if (billsFilter === 'released') list = list.filter(l => l.status==='RELEASED');
+
+  // Search
+  if (q) list = list.filter(l =>
+    l.receiptId.toLowerCase().includes(q) ||
+    l.name.toLowerCase().includes(q) ||
+    l.phone.includes(q) ||
+    (l.items||'').toLowerCase().includes(q)
+  );
+
+  // Sort
+  if (sort === 'date-desc')   list.sort((a,b) => b.date.localeCompare(a.date));
+  if (sort === 'date-asc')    list.sort((a,b) => a.date.localeCompare(b.date));
+  if (sort === 'amount-desc') list.sort((a,b) => Number(b.amount)-Number(a.amount));
+  if (sort === 'amount-asc')  list.sort((a,b) => Number(a.amount)-Number(b.amount));
+  if (sort === 'name-asc')    list.sort((a,b) => a.name.localeCompare(b.name));
+  if (sort === 'days-desc')   list.sort((a,b) => daysSince(b.date)-daysSince(a.date));
+
+  // Count badge
+  document.getElementById('bills-count').textContent = `(${list.length})`;
+
+  if (!list.length) {
+    cont.innerHTML = emptyState(q ? `No bills matching "${esc(q)}"` : 'No bills in this category.');
+    return;
+  }
+
+  cont.innerHTML = list.map((l, idx) => {
+    const s = l.status === 'RELEASED' ? 'released' : loanStatus(l);
+    const days = daysSince(l.date);
+    const pillText = {
+      active:   'Active',
+      due:      'Due soon',
+      overdue:  `${days}d overdue`,
+      critical: `${days}d critical`,
+      released: 'Released'
+    }[s] || 'Active';
+
+    const vaultBadge = l.vault
+      ? `<span style="font-size:10px;padding:2px 7px;border-radius:20px;border:1px solid var(--border);color:var(--text3);margin-left:5px">${l.vault==='local'?'🔒 Local':'🏦 Bank'}</span>`
+      : '';
+
+    return `<div class="bill-row${s==='critical'?' critical-border':''}">
+      <div class="bill-row-header">
+        <div>
+          <div class="bill-row-id">${esc(l.receiptId)}${vaultBadge}</div>
+          <div class="bill-row-name">${esc(l.name)}</div>
+        </div>
+        <div class="pill ${s}">${pillText}</div>
+      </div>
+      <div class="bill-row-meta">
+        <div class="bill-row-meta-item money">₹<span>${Number(l.amount).toLocaleString('en-IN')}</span></div>
+        <div class="bill-row-meta-item"><span>${Number(l.weight).toFixed(2)}g</span> gold</div>
+        <div class="bill-row-meta-item"><span>${fmtDate(l.date)}</span></div>
+      </div>
+      ${l.items ? `<div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.4">${esc(l.items.substring(0,60))}${l.items.length>60?'…':''}</div>` : ''}
+      <div class="bill-row-actions">
+        <div class="btn ghost" style="flex:1;font-size:12px" onclick="viewFromBills('${l.firestoreId}')">
+          <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          View
+        </div>
+        <div class="btn danger" style="flex:1;font-size:12px" onclick="deleteFromBills('${l.firestoreId}','${esc(l.receiptId)}','${esc(l.name)}')">
+          <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+          Delete
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.viewFromBills = function(firestoreId) {
+  closeAllBills();
+  setTimeout(() => openDetail(firestoreId), 100);
+}
+
+window.deleteFromBills = function(firestoreId, receiptId, name) {
+  showModal(`
+    <div class="modal-title">Delete Bill #${receiptId}?</div>
+    <p style="font-size:13px;color:var(--text3);line-height:1.6">This will permanently remove <strong style="color:var(--text)">${name}</strong>'s loan record from all devices. This cannot be undone.</p>
+    <div class="modal-actions">
+      <div class="btn ghost" style="flex:1" onclick="closeModal()">Cancel</div>
+      <div class="btn danger" style="flex:1" onclick="confirmDeleteFromBills('${firestoreId}')">Delete</div>
+    </div>
+  `);
+}
+
+window.confirmDeleteFromBills = async function(firestoreId) {
+  try {
+    setSyncStatus('syncing');
+    await deleteDoc(doc(db, 'loans', firestoreId));
+    closeModal();
+    toast('Record deleted', 'success');
+    // Re-render list after Firestore listener updates
+    setTimeout(() => renderBillsList(), 600);
+  } catch(e) {
+    console.error(e);
+    if (e.code === 'permission-denied') toast('Permission denied — check Firestore rules', 'error');
+    else toast('Error deleting — check connection', 'error');
+    setSyncStatus('offline');
+  }
 }
 
 // ── REPORTS ────────────────────────────────────────────────────────────────
