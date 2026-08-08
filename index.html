@@ -424,7 +424,7 @@ textarea{resize:none;height:64px;line-height:1.4}
         <div class="form-section">
           <div class="input-group">
             <label class="lbl">Manual receipt ID *</label>
-            <input type="text" id="f-id" placeholder="e.g. GS-2026-1200" autocomplete="off" autocorrect="off" spellcheck="false">
+            <input type="text" id="f-id" placeholder="e.g. 1200" autocomplete="off" autocorrect="off" spellcheck="false" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
             <div class="error-msg" id="err-id"></div>
           </div>
           <div class="input-row">
@@ -662,8 +662,8 @@ textarea{resize:none;height:64px;line-height:1.4}
       <select id="bills-sort" onchange="renderBillsList()" style="flex:1;font-size:12px;padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text)">
         <option value="date-desc">Newest first</option>
         <option value="date-asc">Oldest first</option>
-        <option value="billid-asc">Bill ID A–Z</option>
-        <option value="billid-desc">Bill ID Z–A</option>
+        <option value="billid-asc">Bill ID low → high</option>
+        <option value="billid-desc">Bill ID high → low</option>
         <option value="amount-desc">Amount ↑</option>
         <option value="amount-asc">Amount ↓</option>
         <option value="name-asc">Name A–Z</option>
@@ -1638,8 +1638,8 @@ window.renderBillsList = function() {
   // Sort
   if (sort === 'date-desc')   list.sort((a,b) => b.date.localeCompare(a.date));
   if (sort === 'date-asc')    list.sort((a,b) => a.date.localeCompare(b.date));
-  if (sort === 'billid-asc')  list.sort((a,b) => a.receiptId.localeCompare(b.receiptId, undefined, {numeric:true}));
-  if (sort === 'billid-desc') list.sort((a,b) => b.receiptId.localeCompare(a.receiptId, undefined, {numeric:true}));
+  if (sort === 'billid-asc')  list.sort((a,b) => Number(a.receiptId) - Number(b.receiptId));
+  if (sort === 'billid-desc') list.sort((a,b) => Number(b.receiptId) - Number(a.receiptId));
   if (sort === 'amount-desc') list.sort((a,b) => Number(b.amount)-Number(a.amount));
   if (sort === 'amount-asc')  list.sort((a,b) => Number(a.amount)-Number(b.amount));
   if (sort === 'name-asc')    list.sort((a,b) => a.name.localeCompare(b.name));
