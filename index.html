@@ -373,6 +373,11 @@ textarea{resize:none;height:64px;line-height:1.4}
       </div>
     </div>
     <div id="topbar-right">
+      <div id="lang-toggle" onclick="toggleLang()" style="cursor:pointer;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:500;color:var(--text2);display:flex;align-items:center;gap:4px">
+        <span id="lang-en" style="color:var(--gold)">EN</span>
+        <span style="color:var(--border2)">|</span>
+        <span id="lang-hi" style="color:var(--text3)">हि</span>
+      </div>
       <div id="sync-icon" title="Synced">
         <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
       </div>
@@ -461,10 +466,18 @@ textarea{resize:none;height:64px;line-height:1.4}
               <div class="error-msg" id="err-weight"></div>
             </div>
             <div class="input-group">
-              <label class="lbl">Disbursed amount (₹) *</label>
-              <input type="number" id="f-amount" placeholder="0" step="1" min="1" inputmode="numeric">
-              <div class="error-msg" id="err-amount"></div>
+              <label class="lbl">Metal type</label>
+              <select id="f-metal">
+                <option value="gold">Gold</option>
+                <option value="silver">Silver</option>
+                <option value="mixed">Mixed</option>
+              </select>
             </div>
+          </div>
+          <div class="input-group">
+            <label class="lbl">Disbursed amount (₹) *</label>
+            <input type="number" id="f-amount" placeholder="0" step="1" min="1" inputmode="numeric">
+            <div class="error-msg" id="err-amount"></div>
           </div>
           <div class="input-group">
             <label class="lbl">Vault location *</label>
@@ -508,18 +521,22 @@ textarea{resize:none;height:64px;line-height:1.4}
           <div class="audit-vault-card local">
             <div class="audit-vault-title">
               <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-              Local Vault
+              <span data-en="Local Vault" data-hi="स्थानीय तिजोरी">Local Vault</span>
             </div>
             <div class="audit-vault-stat" id="audit-local-count">—</div>
-            <div class="audit-vault-sub" id="audit-local-weight">— g held</div>
+            <div class="audit-vault-sub" id="audit-local-weight">— g gold</div>
+            <div class="audit-vault-sub" id="audit-local-silver" style="color:#A0A0C0">— g silver</div>
+            <div class="audit-vault-sub" id="audit-local-value" style="color:var(--gold);font-family:var(--mono);font-size:12px;margin-top:3px">₹—</div>
           </div>
           <div class="audit-vault-card bank">
             <div class="audit-vault-title">
               <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
-              Bank Vault
+              <span data-en="Bank Vault" data-hi="बैंक तिजोरी">Bank Vault</span>
             </div>
             <div class="audit-vault-stat" id="audit-bank-count">—</div>
-            <div class="audit-vault-sub" id="audit-bank-weight">— g held</div>
+            <div class="audit-vault-sub" id="audit-bank-weight">— g gold</div>
+            <div class="audit-vault-sub" id="audit-bank-silver" style="color:#A0A0C0">— g silver</div>
+            <div class="audit-vault-sub" id="audit-bank-value" style="color:var(--gold);font-family:var(--mono);font-size:12px;margin-top:3px">₹—</div>
           </div>
         </div>
 
@@ -544,6 +561,12 @@ textarea{resize:none;height:64px;line-height:1.4}
           </button>
         </div>
 
+        <!-- Search bill during audit -->
+        <div class="search-wrap" id="audit-search-wrap" style="display:none">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="audit-bill-search" placeholder="Search bill ID, name…" oninput="renderAuditList()" inputmode="numeric" autocomplete="off">
+        </div>
+
         <!-- Filter tabs -->
         <div class="audit-filter-tabs" id="audit-filter-tabs" style="display:none">
           <div class="audit-filter-tab active" onclick="setAuditFilter('all')">All items</div>
@@ -557,8 +580,8 @@ textarea{resize:none;height:64px;line-height:1.4}
           <div class="audit-filter-tab" onclick="setAuditFilter('unassigned')">Unassigned</div>
         </div>
 
-        <!-- Audit item list -->
-        <div id="audit-list"></div>
+        <!-- Audit item list - scrollable full height -->
+        <div id="audit-list" style="min-height:0"></div>
 
         <!-- Past audit history -->
         <div class="sec-label" id="audit-history-label">Past audits</div>
@@ -1248,6 +1271,8 @@ function clearLoanForm() {
   });
   document.getElementById('f-date').value = today();
   document.getElementById('f-date').max = today();
+  const metalEl = document.getElementById('f-metal');
+  if (metalEl) metalEl.value = 'gold';
   ['err-id','err-phone','err-name','err-weight','err-amount'].forEach(id=>{
     const el=document.getElementById(id); if(el){el.style.display='none';el.textContent='';}
   });
@@ -1301,6 +1326,7 @@ window.submitLoan = async function() {
       amount: parseInt(amount),
       status: 'ACTIVE',
       vault: selectedVault,
+      metal: document.getElementById('f-metal') ? document.getElementById('f-metal').value : 'gold',
       photo: capturedPhoto || null,
       createdAt: serverTimestamp()
     };
@@ -1383,15 +1409,25 @@ window.setAuditFilter = function(f) {
 
 function refreshAuditSummary() {
   const active = allLoans.filter(l=>l.status==='ACTIVE');
-  const local = active.filter(l=>l.vault==='local'||!l.vault);
-  const bank  = active.filter(l=>l.vault==='bank');
-  const localGold = local.reduce((s,l)=>s+Number(l.weight),0);
-  const bankGold  = bank.reduce((s,l)=>s+Number(l.weight),0);
+  const local  = active.filter(l=>l.vault==='local'||!l.vault);
+  const bank   = active.filter(l=>l.vault==='bank');
 
-  document.getElementById('audit-local-count').textContent = local.length + ' items';
-  document.getElementById('audit-local-weight').textContent = localGold.toFixed(2) + ' g held';
-  document.getElementById('audit-bank-count').textContent = bank.length + ' items';
-  document.getElementById('audit-bank-weight').textContent = bankGold.toFixed(2) + ' g held';
+  const localGold   = local.filter(l=>!l.metal||l.metal==='gold'||l.metal==='mixed').reduce((s,l)=>s+Number(l.weight),0);
+  const localSilver = local.filter(l=>l.metal==='silver').reduce((s,l)=>s+Number(l.weight),0);
+  const localValue  = local.reduce((s,l)=>s+(Number(l.amount)||0),0);
+
+  const bankGold    = bank.filter(l=>!l.metal||l.metal==='gold'||l.metal==='mixed').reduce((s,l)=>s+Number(l.weight),0);
+  const bankSilver  = bank.filter(l=>l.metal==='silver').reduce((s,l)=>s+Number(l.weight),0);
+  const bankValue   = bank.reduce((s,l)=>s+(Number(l.amount)||0),0);
+
+  document.getElementById('audit-local-count').textContent   = local.length + ' items';
+  document.getElementById('audit-local-weight').textContent  = localGold.toFixed(2) + ' g gold';
+  document.getElementById('audit-local-silver').textContent  = localSilver > 0 ? localSilver.toFixed(2) + ' g silver' : '';
+  document.getElementById('audit-local-value').textContent   = '₹' + localValue.toLocaleString('en-IN');
+  document.getElementById('audit-bank-count').textContent    = bank.length + ' items';
+  document.getElementById('audit-bank-weight').textContent   = bankGold.toFixed(2) + ' g gold';
+  document.getElementById('audit-bank-silver').textContent   = bankSilver > 0 ? bankSilver.toFixed(2) + ' g silver' : '';
+  document.getElementById('audit-bank-value').textContent    = '₹' + bankValue.toLocaleString('en-IN');
 }
 
 function updateAuditProgress() {
@@ -1407,21 +1443,26 @@ function updateAuditProgress() {
 
 function renderAuditList() {
   const cont = document.getElementById('audit-list');
+  if (!auditActive) { cont.innerHTML = ''; return; }
+
   const active = allLoans.filter(l=>l.status==='ACTIVE');
+  const searchEl = document.getElementById('audit-bill-search');
+  const q = searchEl ? searchEl.value.trim().toLowerCase() : '';
 
   let filtered = active;
-  if (auditFilter==='local') filtered = active.filter(l=>!l.vault||l.vault==='local');
-  else if (auditFilter==='bank') filtered = active.filter(l=>l.vault==='bank');
+  if (auditFilter==='local')           filtered = active.filter(l=>!l.vault||l.vault==='local');
+  else if (auditFilter==='bank')       filtered = active.filter(l=>l.vault==='bank');
   else if (auditFilter==='unverified') filtered = active.filter(l=>!auditVerified[l.firestoreId]);
   else if (auditFilter==='unassigned') filtered = active.filter(l=>!l.vault);
 
-  if (!auditActive) {
-    cont.innerHTML = '';
-    return;
-  }
+  if (q) filtered = filtered.filter(l =>
+    String(l.receiptId).includes(q) ||
+    l.name.toLowerCase().includes(q) ||
+    l.phone.includes(q)
+  );
 
   if (!filtered.length) {
-    cont.innerHTML = emptyState('No items in this category.');
+    cont.innerHTML = emptyState(q ? `No bills matching "${esc(q)}"` : 'No items in this category.');
     return;
   }
 
@@ -1429,6 +1470,9 @@ function renderAuditList() {
     const v = l.vault || 'local';
     const isVerified = !!auditVerified[l.firestoreId];
     const verifiedClass = isVerified ? (v==='local'?'verified-local':'verified-bank') : '';
+    const metalTag = l.metal && l.metal !== 'gold'
+      ? `<span style="font-size:10px;padding:1px 5px;border-radius:10px;background:#1A1A2A;border:1px solid #3A3A5A;color:#A0A0C0;margin-left:4px">${l.metal}</span>`
+      : '';
     return `
     <div class="audit-item ${verifiedClass}" id="aitem-${l.firestoreId}">
       <div class="audit-check" onclick="toggleVerify('${l.firestoreId}')">
@@ -1437,8 +1481,8 @@ function renderAuditList() {
       <div class="audit-item-info">
         <div class="audit-item-name">${esc(l.name)}</div>
         <div class="audit-item-meta">
-          <span class="vault-badge ${v}" style="font-size:10px;padding:2px 6px">${v==='local'?'Local':'Bank'}</span>
-          · ${esc(l.receiptId)}
+          <span class="vault-badge ${v}" style="font-size:10px;padding:2px 6px">${v==='local'?'Local':'Bank'}</span>${metalTag}
+          · <span style="font-family:var(--mono)">${esc(l.receiptId)}</span>
         </div>
         <div class="audit-item-meta" style="margin-top:2px">${esc((l.items||'—').substring(0,35))}</div>
       </div>
@@ -1466,6 +1510,8 @@ window.startAudit = function() {
   auditActive = true;
   auditVerified = {};
   auditFilter = 'all';
+  document.getElementById('audit-bill-search').value = '';
+  document.getElementById('audit-search-wrap').style.display = 'block';
   document.getElementById('audit-start-btn').style.display = 'none';
   document.getElementById('audit-end-btn').style.display = 'flex';
   document.getElementById('audit-progress-wrap').style.display = 'block';
@@ -1547,6 +1593,7 @@ window.saveAudit = async function(total,verified,missing,localCount,bankCount,lo
   closeModal();
   auditActive = false;
   auditVerified = {};
+  document.getElementById('audit-search-wrap').style.display = 'none';
   document.getElementById('audit-start-btn').style.display = 'flex';
   document.getElementById('audit-end-btn').style.display = 'none';
   document.getElementById('audit-progress-wrap').style.display = 'none';
@@ -1566,17 +1613,23 @@ async function loadAuditHistory() {
     });
     if (snap.empty) { cont.innerHTML = emptyState('No audits recorded yet.'); return; }
     cont.innerHTML = snap.docs.map(d => {
-      const a = d.data();
+      const a = d.data(); const aid = d.id;
       return `<div class="audit-session-card" style="margin-bottom:8px">
-        <div class="audit-session-date">${fmtDate(a.date)}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div class="audit-session-date">${fmtDate(a.date)}</div>
+          <div class="btn danger" onclick="deleteAudit('${aid}')" style="flex:none;padding:4px 10px;font-size:11px;border-radius:var(--r)">
+            <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+            Delete
+          </div>
+        </div>
         <div class="audit-session-stats">
           <div class="audit-session-stat"><div class="audit-session-val" style="color:var(--green)">${a.verified}</div><div class="audit-session-lbl">Verified</div></div>
           <div class="audit-session-stat"><div class="audit-session-val" style="color:var(--red)">${a.missing}</div><div class="audit-session-lbl">Missing</div></div>
           <div class="audit-session-stat"><div class="audit-session-val">${a.total}</div><div class="audit-session-lbl">Total</div></div>
         </div>
         <div style="display:flex;gap:6px;margin-top:8px">
-          <span class="vault-badge local">🔒 ${a.localCount} items · ${a.localGold}g</span>
-          <span class="vault-badge bank">🏦 ${a.bankCount} items · ${a.bankGold}g</span>
+          <span class="vault-badge local">🔒 ${a.localCount||0} items · ${a.localGold||0}g</span>
+          <span class="vault-badge bank">🏦 ${a.bankCount||0} items · ${a.bankGold||0}g</span>
         </div>
       </div>`;
     }).join('');
@@ -2128,6 +2181,107 @@ window.switchScreen = function(name) {
   _origSwitchForReports(name);
   if (name === 'reports') { rptTab = 'monthly'; ['monthly','customers','health'].forEach(t=>{ const el=document.getElementById('rtab-'+t); if(el) el.classList.toggle('active',t==='monthly'); }); renderReports(); }
 }
+
+// ── DELETE AUDIT ──────────────────────────────────────────────────────────
+window.deleteAudit = function(auditId) {
+  showModal(`
+    <div class="modal-title">Delete this audit record?</div>
+    <p style="font-size:13px;color:var(--text3);line-height:1.6">This will permanently remove this audit session log. Cannot be undone.</p>
+    <div class="modal-actions">
+      <div class="btn ghost" style="flex:1" onclick="closeModal()">Cancel</div>
+      <div class="btn danger" style="flex:1" onclick="confirmDeleteAudit('${auditId}')">Delete</div>
+    </div>
+  `);
+}
+window.confirmDeleteAudit = async function(auditId) {
+  try {
+    await deleteDoc(doc(db, 'audits', auditId));
+    closeModal(); toast('Audit record deleted'); loadAuditHistory();
+  } catch(e) { toast('Error deleting audit', 'error'); }
+}
+
+// ── LANGUAGE TOGGLE ───────────────────────────────────────────────────────
+let currentLang = 'en';
+const T = {
+  en: { 'Dashboard':'Dashboard','New Loan':'New Loan','Due':'Due','Reports':'Reports','Search':'Search','Audit':'Audit',
+    'Vault summary':'Vault summary','Local Vault':'Local Vault','Bank Vault':'Bank Vault',
+    'Active loans':'Active loans','Disbursed':'Disbursed','Gold held':'Gold held',
+    'Action needed':'Action needed','Due this week':'Due this week','Overdue':'Overdue','Critical':'Critical',
+    'Recent loans':'Recent loans','View all bills':'View all bills','Portfolio overview':'Portfolio overview',
+    'New transaction':'New transaction','Manual receipt ID *':'Manual receipt ID *',
+    'Date of receipt *':'Date of receipt *','Phone number *':'Phone number *',
+    'Customer name *':'Customer name *','Items (photo + description)':'Items (photo + description)',
+    'Gold weight (g) *':'Gold weight (g) *','Metal type':'Metal type',
+    'Disbursed amount (₹) *':'Disbursed amount (₹) *','Vault location *':'Vault location *',
+    'Past audits':'Past audits','records':'records','outstanding':'outstanding','total':'total' },
+  hi: { 'Dashboard':'डैशबोर्ड','New Loan':'नया ऋण','Due':'देय','Reports':'रिपोर्ट','Search':'खोज','Audit':'ऑडिट',
+    'Vault summary':'तिजोरी सारांश','Local Vault':'स्थानीय तिजोरी','Bank Vault':'बैंक तिजोरी',
+    'Active loans':'सक्रिय ऋण','Disbursed':'वितरित','Gold held':'सोना जमा',
+    'Action needed':'कार्रवाई आवश्यक','Due this week':'इस सप्ताह देय','Overdue':'बकाया','Critical':'गंभीर',
+    'Recent loans':'हाल के ऋण','View all bills':'सभी बिल देखें','Portfolio overview':'पोर्टफोलियो अवलोकन',
+    'New transaction':'नया लेनदेन','Manual receipt ID *':'रसीद नंबर *',
+    'Date of receipt *':'रसीद की तारीख *','Phone number *':'फोन नंबर *',
+    'Customer name *':'ग्राहक का नाम *','Items (photo + description)':'वस्तुएं (फोटो + विवरण)',
+    'Gold weight (g) *':'सोने का वजन (ग्राम) *','Metal type':'धातु प्रकार',
+    'Disbursed amount (₹) *':'वितरित राशि (₹) *','Vault location *':'तिजोरी स्थान *',
+    'Past audits':'पिछले ऑडिट','records':'रिकॉर्ड','outstanding':'बकाया','total':'कुल' }
+};
+
+window.toggleLang = function() {
+  currentLang = currentLang === 'en' ? 'hi' : 'en';
+  const isHi = currentLang === 'hi';
+  document.getElementById('lang-en').style.color = isHi ? 'var(--text3)' : 'var(--gold)';
+  document.getElementById('lang-hi').style.color = isHi ? 'var(--gold)' : 'var(--text3)';
+
+  // Elements with data-en/data-hi set in HTML
+  document.querySelectorAll('[data-en][data-hi]').forEach(el => {
+    el.textContent = isHi ? el.dataset.hi : el.dataset.en;
+  });
+
+  // sec-labels
+  document.querySelectorAll('.sec-label').forEach(el => {
+    const en = el.dataset.en || el.textContent.trim();
+    if (!el.dataset.en) el.dataset.en = en;
+    el.textContent = (T[currentLang][en] || en);
+  });
+
+  // Form labels
+  document.querySelectorAll('label.lbl').forEach(el => {
+    const en = el.dataset.en || el.textContent.trim();
+    if (!el.dataset.en) el.dataset.en = en;
+    el.textContent = (T[currentLang][en] || en);
+  });
+
+  // Submit button
+  const sb = document.getElementById('submit-btn');
+  if (sb) { const svg = sb.querySelector('svg'); sb.textContent = isHi?'जमा करें और वितरित करें':'Submit & Disburse'; if(svg) sb.prepend(svg); }
+
+  // Audit start button
+  const ab = document.getElementById('audit-start-btn');
+  if (ab) { const svg = ab.querySelector('svg'); ab.textContent = isHi?'ऑडिट शुरू करें':'Start Audit'; if(svg) ab.prepend(svg); }
+
+  // Nav item text nodes
+  const navMap = {'nav-dashboard':['Dashboard','डैशबोर्ड'],'nav-newloan':['New Loan','नया ऋण'],
+    'nav-due':['Due','देय'],'nav-reports':['Reports','रिपोर्ट'],
+    'nav-search':['Search','खोज'],'nav-audit':['Audit','ऑडिट']};
+  Object.entries(navMap).forEach(([id,[en,hi]])=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    const txt=el.lastChild;
+    if(txt&&txt.nodeType===3) txt.textContent='\n      '+(isHi?hi:en)+'\n    ';
+  });
+
+  toast(isHi ? 'हिंदी में बदला गया ✓' : 'Switched to English ✓');
+}
+
+// ── METAL field in submitLoan ─────────────────────────────────────────────
+// Patch submitLoan to include metal type
+const _origSubmitLoan = window.submitLoan;
+window.submitLoan = async function() {
+  // metal field value is picked up inside the form before addDoc
+  await _origSubmitLoan();
+}
+
 document.getElementById('f-date').value = today();
 document.getElementById('f-date').max = today();
 document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
