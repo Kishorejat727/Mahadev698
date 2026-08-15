@@ -1127,6 +1127,7 @@ window.closeDetail = function() {
 window.openEditModal = function() {
   const loan = allLoans.find(l => l.firestoreId === currentDetailId);
   if (!loan) return;
+  const metal = loan.metal || 'gold';
   showModal(`
     <div class="modal-title">Edit Loan Details</div>
     <div class="form-section">
@@ -1148,9 +1149,17 @@ window.openEditModal = function() {
         <label class="lbl">Items description</label>
         <textarea id="ed-items">${esc(loan.items||'')}</textarea>
       </div>
+      <div class="input-group">
+        <label class="lbl">Metal type</label>
+        <select id="ed-metal">
+          <option value="gold"  ${metal==='gold'  ?'selected':''}>Gold</option>
+          <option value="silver"${metal==='silver'?'selected':''}>Silver</option>
+          <option value="mixed" ${metal==='mixed' ?'selected':''}>Mixed</option>
+        </select>
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div class="input-group">
-          <label class="lbl">Gold weight (g)</label>
+          <label class="lbl">Weight (g)</label>
           <input type="number" id="ed-weight" value="${loan.weight}" step="0.01" min="0.01" inputmode="decimal">
           <div class="error-msg" id="ed-err-weight"></div>
         </div>
@@ -1176,6 +1185,7 @@ window.saveEdit = async function(firestoreId) {
   const phone  = document.getElementById('ed-phone').value.trim();
   const date   = document.getElementById('ed-date').value;
   const items  = document.getElementById('ed-items').value.trim();
+  const metal  = document.getElementById('ed-metal') ? document.getElementById('ed-metal').value : 'gold';
   const weight = document.getElementById('ed-weight').value;
   const amount = document.getElementById('ed-amount').value;
 
@@ -1208,12 +1218,12 @@ window.saveEdit = async function(firestoreId) {
       phone,
       date,
       items,
+      metal,
       weight: parseFloat(Number(weight).toFixed(2)),
       amount: parseInt(amount)
     });
     closeModal();
     toast('Loan updated successfully', 'success');
-    // Refresh detail view after Firestore listener updates allLoans
     setTimeout(() => openDetail(firestoreId), 600);
   } catch(e) {
     console.error('saveEdit error:', e);
