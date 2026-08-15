@@ -711,7 +711,7 @@ textarea{resize:none;height:64px;line-height:1.4}
 <!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, enableIndexedDbPersistence, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query, enableIndexedDbPersistence, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
 
 const firebaseConfig = {
@@ -818,11 +818,16 @@ window.addEventListener('offline', () => setSyncStatus('offline'));
 
 // ── REAL-TIME LISTENER ─────────────────────────────────────────────────────
 const loansCol = collection(db, 'loans');
-const q = query(loansCol, orderBy('createdAt', 'desc'));
+const q = query(loansCol);
 
 onSnapshot(q, (snapshot) => {
   setSyncStatus('synced');
   allLoans = snapshot.docs.map(d => ({ firestoreId: d.id, ...d.data() }));
+  // Sort newest first client-side (avoids Firestore dropping docs missing createdAt)
+  allLoans.sort((a, b) => {
+    const da = a.date || ''; const db2 = b.date || '';
+    return db2.localeCompare(da);
+  });
   // Auto-purge 5yr rule
   const cutoff = new Date();
   cutoff.setFullYear(cutoff.getFullYear() - 5);
