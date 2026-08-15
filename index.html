@@ -565,7 +565,7 @@ textarea{resize:none;height:64px;line-height:1.4}
         <!-- Search bill during audit -->
         <div class="search-wrap" id="audit-search-wrap" style="display:none">
           <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="audit-bill-search" placeholder="Search bill ID, name…" oninput="renderAuditList()" inputmode="numeric" autocomplete="off">
+          <input type="text" id="audit-bill-search" placeholder="Type bill ID or customer name…" oninput="renderAuditList()" autocomplete="off" autocorrect="off">
         </div>
 
         <!-- Filter tabs -->
@@ -1464,65 +1464,82 @@ function renderAuditList() {
   const cont = document.getElementById('audit-list');
   if (!auditActive) { cont.innerHTML = ''; return; }
 
-  const active = allLoans.filter(l=>l.status==='ACTIVE');
+  const active = allLoans.filter(l => l.status === 'ACTIVE');
   const searchEl = document.getElementById('audit-bill-search');
   const q = searchEl ? searchEl.value.trim().toLowerCase() : '';
 
-  let filtered = active;
-  if (auditFilter==='local')           filtered = active.filter(l=>!l.vault||l.vault==='local');
-  else if (auditFilter==='bank')       filtered = active.filter(l=>l.vault==='bank');
-  else if (auditFilter==='unverified') filtered = active.filter(l=>!auditVerified[l.firestoreId]);
-  else if (auditFilter==='unassigned') filtered = active.filter(l=>!l.vault);
+  // Filter by tab first
+  let pool = active;
+  if (auditFilter==='local')           pool = active.filter(l=>!l.vault||l.vault==='local');
+  else if (auditFilter==='bank')       pool = active.filter(l=>l.vault==='bank');
+  else if (auditFilter==='unverified') pool = active.filter(l=>!auditVerified[l.firestoreId]);
+  else if (auditFilter==='unassigned') pool = active.filter(l=>!l.vault);
 
-  if (q) filtered = filtered.filter(l =>
-    String(l.receiptId).includes(q) ||
-    l.name.toLowerCase().includes(q) ||
-    l.phone.includes(q)
-  );
-
-  if (!filtered.length) {
-    cont.innerHTML = emptyState(q ? `No bills matching "${esc(q)}"` : 'No items in this category.');
+  // If no search query — show already-verified items so progress is visible, plus prompt
+  if (!q) {
+    const verified = pool.filter(l => auditVerified[l.firestoreId]);
+    const verifiedHtml = verified.length ? verified.map(l => auditItemRow(l)).join('') : '';
+    cont.innerHTML = `
+      <div style="text-align:center;padding:20px 10px;background:var(--surface);border:1px dashed var(--border2);border-radius:var(--r2);margin-bottom:${verified.length?'10px':'0'}">
+        <div style="font-size:13px;color:var(--text2);margin-bottom:4px">Type a bill ID or name above to find and verify an item</div>
+        <div style="font-size:11px;color:var(--text3)">${pool.length} items in this category · ${verified.length} verified so far</div>
+      </div>
+      ${verifiedHtml}`;
     return;
   }
 
-  cont.innerHTML = filtered.map(l => {
-    const v = l.vault || 'local';
-    const isVerified = !!auditVerified[l.firestoreId];
-    const verifiedClass = isVerified ? (v==='local'?'verified-local':'verified-bank') : '';
-    const metalTag = l.metal && l.metal !== 'gold'
-      ? `<span style="font-size:10px;padding:1px 5px;border-radius:10px;background:#1A1A2A;border:1px solid #3A3A5A;color:#A0A0C0;margin-left:4px">${l.metal}</span>`
-      : '';
-    return `
-    <div class="audit-item ${verifiedClass}" id="aitem-${l.firestoreId}">
-      <div class="audit-check" onclick="toggleVerify('${l.firestoreId}')">
-        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+  // Search across bill ID, name, phone
+  const filtered = pool.filter(l =>
+    String(l.receiptId).includes(q) ||
+    l.name.toLowerCase().includes(q) ||
+    (l.phone||'').includes(q)
+  );
+
+  if (!filtered.length) {
+    cont.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px">No bills matching "<strong style="color:var(--text)">${esc(q)}</strong>"</div>`;
+    return;
+  }
+
+  cont.innerHTML = filtered.map(l => auditItemRow(l)).join('');
+}
+
+function auditItemRow(l) {
+  const v = l.vault || 'local';
+  const isVerified = !!auditVerified[l.firestoreId];
+  const verifiedClass = isVerified ? (v==='local'?' verified-local':' verified-bank') : '';
+  const metalTag = l.metal && l.metal !== 'gold'
+    ? `<span style="font-size:10px;padding:1px 5px;border-radius:10px;background:#1A1A2A;border:1px solid #3A3A5A;color:#A0A0C0;margin-left:4px">${l.metal}</span>`
+    : '';
+  return `
+  <div class="audit-item${verifiedClass}" id="aitem-${l.firestoreId}">
+    <div class="audit-check" onclick="toggleVerify('${l.firestoreId}')">
+      <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div class="audit-item-info">
+      <div class="audit-item-name">${esc(l.name)}</div>
+      <div class="audit-item-meta">
+        <span class="vault-badge ${v}" style="font-size:10px;padding:2px 6px">${v==='local'?'Local':'Bank'}</span>${metalTag}
+        · <span style="font-family:var(--mono);font-weight:500">${esc(l.receiptId)}</span>
       </div>
-      <div class="audit-item-info">
-        <div class="audit-item-name">${esc(l.name)}</div>
-        <div class="audit-item-meta">
-          <span class="vault-badge ${v}" style="font-size:10px;padding:2px 6px">${v==='local'?'Local':'Bank'}</span>${metalTag}
-          · <span style="font-family:var(--mono)">${esc(l.receiptId)}</span>
-        </div>
-        <div class="audit-item-meta" style="margin-top:2px">${esc((l.items||'—').substring(0,35))}</div>
-      </div>
-      <div class="audit-item-right">
-        <div class="audit-item-weight">${Number(l.weight).toFixed(2)}g</div>
-        <div style="font-size:10px;color:var(--text3);margin-top:2px">${fmtMoneyFull(l.amount)}</div>
-      </div>
-    </div>`;
-  }).join('');
+      <div class="audit-item-meta" style="margin-top:2px">${esc((l.items||'—').substring(0,40))}</div>
+    </div>
+    <div class="audit-item-right">
+      <div class="audit-item-weight">${Number(l.weight).toFixed(2)}g</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:2px">${fmtMoneyFull(l.amount)}</div>
+    </div>
+  </div>`;
 }
 
 window.toggleVerify = function(firestoreId) {
   auditVerified[firestoreId] = !auditVerified[firestoreId];
-  const loan = allLoans.find(l=>l.firestoreId===firestoreId);
-  const v = (loan && loan.vault) || 'local';
-  const isVerified = auditVerified[firestoreId];
-  const el = document.getElementById('aitem-' + firestoreId);
-  if (el) {
-    el.className = 'audit-item' + (isVerified?(v==='local'?' verified-local':' verified-bank'):'');
-  }
   updateAuditProgress();
+  // If just verified (ticked), clear search so user can search next item
+  const isNowVerified = auditVerified[firestoreId];
+  if (isNowVerified) {
+    const searchEl = document.getElementById('audit-bill-search');
+    if (searchEl) searchEl.value = '';
+  }
+  renderAuditList();
 }
 
 window.startAudit = function() {
@@ -1601,14 +1618,17 @@ window.cancelEndAudit = function() {
 
 window.saveAudit = async function(total,verified,missing,localCount,bankCount,localGold,bankGold) {
   try {
+    // Save verified bill IDs list so history shows which were ticked
+    const verifiedIds = Object.keys(auditVerified).filter(id=>auditVerified[id]);
     await addDoc(auditsCol, {
       date: today(),
-      timestamp: serverTimestamp(),
+      timestamp: Date.now(), // use epoch number, not serverTimestamp, to avoid orderBy issues
       total, verified, missing, localCount, bankCount,
-      localGold: parseFloat(localGold), bankGold: parseFloat(bankGold)
+      localGold: parseFloat(localGold), bankGold: parseFloat(bankGold),
+      verifiedIds
     });
     toast('Audit saved successfully','success');
-  } catch(e) { console.error(e); }
+  } catch(e) { console.error(e); toast('Error saving audit','error'); }
   closeModal();
   auditActive = false;
   auditVerified = {};
@@ -1620,19 +1640,27 @@ window.saveAudit = async function(total,verified,missing,localCount,bankCount,lo
   document.getElementById('audit-history-label').style.display = 'block';
   document.getElementById('audit-history').style.display = 'block';
   document.getElementById('audit-list').innerHTML = '';
+  document.getElementById('audit-bill-search').value = '';
   loadAuditHistory();
 }
 
 async function loadAuditHistory() {
   const cont = document.getElementById('audit-history');
+  cont.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px">Loading…</div>';
   try {
+    // Use plain query — no orderBy — to avoid dropping docs without timestamp field
     const snap = await new Promise(res => {
-      const q2 = query(auditsCol, orderBy('timestamp','desc'));
+      const q2 = query(auditsCol);
       const unsub = onSnapshot(q2, s => { unsub(); res(s); });
     });
     if (snap.empty) { cont.innerHTML = emptyState('No audits recorded yet.'); return; }
-    cont.innerHTML = snap.docs.map(d => {
-      const a = d.data(); const aid = d.id;
+    // Sort client-side by timestamp desc
+    const docs = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a,b) => (Number(b.timestamp)||0) - (Number(a.timestamp)||0));
+
+    cont.innerHTML = docs.map(a => {
+      const aid = a.id;
       return `<div class="audit-session-card" style="margin-bottom:8px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
           <div class="audit-session-date">${fmtDate(a.date)}</div>
@@ -1642,17 +1670,20 @@ async function loadAuditHistory() {
           </div>
         </div>
         <div class="audit-session-stats">
-          <div class="audit-session-stat"><div class="audit-session-val" style="color:var(--green)">${a.verified}</div><div class="audit-session-lbl">Verified</div></div>
-          <div class="audit-session-stat"><div class="audit-session-val" style="color:var(--red)">${a.missing}</div><div class="audit-session-lbl">Missing</div></div>
-          <div class="audit-session-stat"><div class="audit-session-val">${a.total}</div><div class="audit-session-lbl">Total</div></div>
+          <div class="audit-session-stat"><div class="audit-session-val" style="color:var(--green)">${a.verified||0}</div><div class="audit-session-lbl">Verified</div></div>
+          <div class="audit-session-stat"><div class="audit-session-val" style="color:var(--red)">${a.missing||0}</div><div class="audit-session-lbl">Unverified</div></div>
+          <div class="audit-session-stat"><div class="audit-session-val">${a.total||0}</div><div class="audit-session-lbl">Total</div></div>
         </div>
-        <div style="display:flex;gap:6px;margin-top:8px">
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
           <span class="vault-badge local">🔒 ${a.localCount||0} items · ${a.localGold||0}g</span>
           <span class="vault-badge bank">🏦 ${a.bankCount||0} items · ${a.bankGold||0}g</span>
         </div>
       </div>`;
     }).join('');
-  } catch(e) { cont.innerHTML = emptyState('Could not load audit history.'); }
+  } catch(e) {
+    console.error('loadAuditHistory error:', e);
+    cont.innerHTML = emptyState('Could not load audit history.');
+  }
 }
 
 // Patch switchScreen to load audit data
