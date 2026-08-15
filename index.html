@@ -612,7 +612,70 @@ textarea{resize:none;height:64px;line-height:1.4}
         <div id="search-results"></div>
       </div>
     </div>
-  </div>
+
+    <!-- BANK PLEDGE TRACKER -->
+    <div id="screen-bank" class="screen">
+      <div class="screen-body">
+        <!-- Summary -->
+        <div class="stat-row" style="grid-template-columns:repeat(3,1fr)">
+          <div class="stat"><div class="stat-label">Bank pledges</div><div class="stat-val" id="bk-count" style="color:#4090D0">—</div><div class="stat-sub">active</div></div>
+          <div class="stat"><div class="stat-label">Bank total</div><div class="stat-val" id="bk-total" style="color:#4090D0">—</div><div class="stat-sub">borrowed</div></div>
+          <div class="stat"><div class="stat-label">Margin</div><div class="stat-val" id="bk-margin" style="color:var(--green)">—</div><div class="stat-sub">spread</div></div>
+        </div>
+
+        <!-- Add new pledge -->
+        <div class="sec-label">New bank pledge</div>
+        <div class="card" style="border-color:#1A3A6A">
+          <div class="form-section">
+            <div class="input-row">
+              <div class="input-group">
+                <label class="lbl">Pawn bill ID</label>
+                <input type="text" id="bk-pawn-id" placeholder="e.g. 6155" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'');previewPawnBill()" autocomplete="off">
+                <div class="error-msg" id="bk-err-pawn"></div>
+              </div>
+              <div class="input-group">
+                <label class="lbl">Bank loan bill ID</label>
+                <input type="text" id="bk-bank-id" placeholder="Bank ref no." autocomplete="off" autocorrect="off">
+                <div class="error-msg" id="bk-err-bankid"></div>
+              </div>
+            </div>
+            <div class="input-row">
+              <div class="input-group">
+                <label class="lbl">Date</label>
+                <input type="date" id="bk-date">
+              </div>
+              <div class="input-group">
+                <label class="lbl">Bank loan amount (₹)</label>
+                <input type="number" id="bk-amount" placeholder="0" inputmode="numeric" min="1">
+                <div class="error-msg" id="bk-err-amount"></div>
+              </div>
+            </div>
+            <!-- Linked pawn loan preview -->
+            <div id="bk-pawn-preview" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px">
+              <div style="font-size:10px;color:var(--text3);margin-bottom:4px">Linked pawn loan</div>
+              <div id="bk-pawn-preview-content"></div>
+            </div>
+          </div>
+          <button class="submit-btn" style="margin-top:14px;background:#1A3A8A" onclick="addBankPledge()">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+            Add Bank Pledge
+          </button>
+        </div>
+
+        <!-- Pledges list -->
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div class="sec-label">Active pledges</div>
+          <div id="bk-list-count" style="font-size:11px;color:var(--text3);font-family:var(--mono)"></div>
+        </div>
+        <div class="search-wrap">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="search" id="bk-search" placeholder="Search bank ID, pawn bill…" oninput="renderBankList()" autocomplete="off">
+        </div>
+        <div id="bk-list"></div>
+      </div>
+    </div>
+
+  </div><!-- end #screens -->
 
   <div id="nav" style="font-size:9.5px">
     <div class="nav-item active" onclick="switchScreen('dashboard')" id="nav-dashboard">
@@ -627,6 +690,10 @@ textarea{resize:none;height:64px;line-height:1.4}
       <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
       <span id="due-badge-nav" class="nav-badge" style="display:none">0</span>
       Due
+    </div>
+    <div class="nav-item" onclick="switchScreen('bank')" id="nav-bank">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      Bank
     </div>
     <div class="nav-item" onclick="switchScreen('audit')" id="nav-audit">
       <svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
@@ -842,6 +909,7 @@ onSnapshot(q, (snapshot) => {
   if (activeScreen && activeScreen.id === 'screen-search') doSearch();
   if (activeScreen && activeScreen.id === 'screen-audit') { refreshAuditSummary(); if(auditActive) renderAuditList(); }
   if (activeScreen && activeScreen.id === 'screen-reports') renderReports();
+  if (activeScreen && activeScreen.id === 'screen-bank') { refreshBankSummary(); renderBankList(); }
 }, (err) => {
   console.error(err);
   setSyncStatus('offline');
@@ -1421,7 +1489,7 @@ window.setAuditFilter = function(f) {
   auditFilter = f;
   document.querySelectorAll('.audit-filter-tab').forEach((t,i) => {
     const filters = ['all','local','bank','unverified','unassigned'];
-    t.classList.toggle('active', filters[i]===f);
+    t.classList.toggle('active', filters[i] === f);
   });
   renderAuditList();
 }
@@ -1465,63 +1533,91 @@ function renderAuditList() {
   if (!auditActive) { cont.innerHTML = ''; return; }
 
   const active = allLoans.filter(l => l.status === 'ACTIVE');
+  if (!active.length) {
+    cont.innerHTML = emptyState('No active loans to audit.');
+    return;
+  }
+
   const searchEl = document.getElementById('audit-bill-search');
-  const q = searchEl ? searchEl.value.trim().toLowerCase() : '';
+  const q = (searchEl ? searchEl.value.trim() : '').toLowerCase();
 
-  // Filter by tab first
+  // Apply vault/status filter tab
   let pool = active;
-  if (auditFilter==='local')           pool = active.filter(l=>!l.vault||l.vault==='local');
-  else if (auditFilter==='bank')       pool = active.filter(l=>l.vault==='bank');
-  else if (auditFilter==='unverified') pool = active.filter(l=>!auditVerified[l.firestoreId]);
-  else if (auditFilter==='unassigned') pool = active.filter(l=>!l.vault);
+  if      (auditFilter === 'local')      pool = active.filter(l => !l.vault || l.vault === 'local');
+  else if (auditFilter === 'bank')       pool = active.filter(l => l.vault === 'bank');
+  else if (auditFilter === 'unverified') pool = active.filter(l => !auditVerified[l.firestoreId]);
+  else if (auditFilter === 'unassigned') pool = active.filter(l => !l.vault);
 
-  // If no search query — show already-verified items so progress is visible, plus prompt
-  if (!q) {
-    const verified = pool.filter(l => auditVerified[l.firestoreId]);
-    const verifiedHtml = verified.length ? verified.map(l => auditItemRow(l)).join('') : '';
-    cont.innerHTML = `
-      <div style="text-align:center;padding:20px 10px;background:var(--surface);border:1px dashed var(--border2);border-radius:var(--r2);margin-bottom:${verified.length?'10px':'0'}">
-        <div style="font-size:13px;color:var(--text2);margin-bottom:4px">Type a bill ID or name above to find and verify an item</div>
-        <div style="font-size:11px;color:var(--text3)">${pool.length} items in this category · ${verified.length} verified so far</div>
-      </div>
-      ${verifiedHtml}`;
+  // Apply search
+  if (q) {
+    pool = pool.filter(l =>
+      String(l.receiptId).toLowerCase().includes(q) ||
+      (l.name || '').toLowerCase().includes(q) ||
+      (l.phone || '').includes(q)
+    );
+  }
+
+  // Split into unverified and verified
+  let unverified = pool.filter(l => !auditVerified[l.firestoreId]);
+  let verified   = pool.filter(l =>  auditVerified[l.firestoreId]);
+
+  // Unverified filter tab: pool is already only unverified, so show all as "to verify", none as verified
+  if (auditFilter === 'unverified') verified = [];
+
+  if (!pool.length && q) {
+    cont.innerHTML = `<div style="text-align:center;padding:24px;background:var(--surface);border-radius:var(--r2);color:var(--text3);font-size:13px">
+      No bills matching "<strong style="color:var(--text)">${esc(q)}</strong>"
+    </div>`;
     return;
   }
 
-  // Search across bill ID, name, phone
-  const filtered = pool.filter(l =>
-    String(l.receiptId).includes(q) ||
-    l.name.toLowerCase().includes(q) ||
-    (l.phone||'').includes(q)
-  );
+  let html = '';
 
-  if (!filtered.length) {
-    cont.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px">No bills matching "<strong style="color:var(--text)">${esc(q)}</strong>"</div>`;
-    return;
+  // Unverified section
+  if (unverified.length) {
+    html += `<div style="font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px">
+      To verify — ${unverified.length} remaining
+    </div>`;
+    html += unverified.map(l => auditItemRow(l)).join('');
   }
 
-  cont.innerHTML = filtered.map(l => auditItemRow(l)).join('');
+  // Verified section
+  if (verified.length) {
+    html += `<div style="font-size:10px;font-weight:600;color:var(--green);letter-spacing:.08em;text-transform:uppercase;margin:${unverified.length?'14px':0} 0 6px;display:flex;align-items:center;gap:6px">
+      <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"><polyline points="20 6 9 17 4 12"/></svg>
+      Verified — ${verified.length} done
+    </div>`;
+    html += verified.map(l => auditItemRow(l)).join('');
+  }
+
+  if (!html) {
+    html = `<div style="text-align:center;padding:24px;background:var(--surface);border-radius:var(--r2);color:var(--text3);font-size:13px">
+      No items in this category. Try a different filter.
+    </div>`;
+  }
+
+  cont.innerHTML = html;
 }
 
 function auditItemRow(l) {
   const v = l.vault || 'local';
   const isVerified = !!auditVerified[l.firestoreId];
-  const verifiedClass = isVerified ? (v==='local'?' verified-local':' verified-bank') : '';
+  const verifiedClass = isVerified ? (v === 'local' ? ' verified-local' : ' verified-bank') : '';
   const metalTag = l.metal && l.metal !== 'gold'
-    ? `<span style="font-size:10px;padding:1px 5px;border-radius:10px;background:#1A1A2A;border:1px solid #3A3A5A;color:#A0A0C0;margin-left:4px">${l.metal}</span>`
+    ? `<span style="font-size:10px;padding:1px 5px;border-radius:10px;background:#1A1A2A;border:1px solid #3A3A5A;color:#A0A0C0;margin-left:4px">${esc(l.metal)}</span>`
     : '';
   return `
-  <div class="audit-item${verifiedClass}" id="aitem-${l.firestoreId}">
+  <div class="audit-item${verifiedClass}" id="aitem-${l.firestoreId}" style="margin-bottom:6px">
     <div class="audit-check" onclick="toggleVerify('${l.firestoreId}')">
       <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
     </div>
     <div class="audit-item-info">
       <div class="audit-item-name">${esc(l.name)}</div>
       <div class="audit-item-meta">
-        <span class="vault-badge ${v}" style="font-size:10px;padding:2px 6px">${v==='local'?'Local':'Bank'}</span>${metalTag}
-        · <span style="font-family:var(--mono);font-weight:500">${esc(l.receiptId)}</span>
+        <span class="vault-badge ${v}" style="font-size:10px;padding:2px 6px">${v === 'local' ? 'Local' : 'Bank'}</span>${metalTag}
+        · <span style="font-family:var(--mono);font-weight:500">${esc(String(l.receiptId))}</span>
       </div>
-      <div class="audit-item-meta" style="margin-top:2px">${esc((l.items||'—').substring(0,40))}</div>
+      <div class="audit-item-meta" style="margin-top:2px">${esc((l.items || '—').substring(0, 40))}</div>
     </div>
     <div class="audit-item-right">
       <div class="audit-item-weight">${Number(l.weight).toFixed(2)}g</div>
@@ -1533,12 +1629,6 @@ function auditItemRow(l) {
 window.toggleVerify = function(firestoreId) {
   auditVerified[firestoreId] = !auditVerified[firestoreId];
   updateAuditProgress();
-  // If just verified (ticked), clear search so user can search next item
-  const isNowVerified = auditVerified[firestoreId];
-  if (isNowVerified) {
-    const searchEl = document.getElementById('audit-bill-search');
-    if (searchEl) searchEl.value = '';
-  }
   renderAuditList();
 }
 
@@ -2232,6 +2322,183 @@ window.switchScreen = function(name) {
   if (name === 'reports') { rptTab = 'monthly'; ['monthly','customers','health'].forEach(t=>{ const el=document.getElementById('rtab-'+t); if(el) el.classList.toggle('active',t==='monthly'); }); renderReports(); }
 }
 
+// ── BANK PLEDGE TRACKER ───────────────────────────────────────────────────
+const bankCol = collection(db, 'bankpledges');
+let allBankPledges = [];
+
+// Real-time listener for bank pledges
+onSnapshot(query(bankCol), snap => {
+  allBankPledges = snap.docs
+    .map(d => ({ pledgeId: d.id, ...d.data() }))
+    .sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  refreshBankSummary();
+  renderBankList();
+});
+
+function refreshBankSummary() {
+  const count  = allBankPledges.length;
+  const total  = allBankPledges.reduce((s,p) => s + (Number(p.bankAmount)||0), 0);
+  // Margin = bank amount minus linked pawn amount
+  const margin = allBankPledges.reduce((s,p) => {
+    const pawn = allLoans.find(l => String(l.receiptId) === String(p.pawnBillId));
+    const pawnAmt = pawn ? Number(pawn.amount) : 0;
+    return s + (Number(p.bankAmount)||0) - pawnAmt;
+  }, 0);
+  const bkCount  = document.getElementById('bk-count');
+  const bkTotal  = document.getElementById('bk-total');
+  const bkMargin = document.getElementById('bk-margin');
+  if (bkCount)  bkCount.textContent  = count;
+  if (bkTotal)  bkTotal.textContent  = fmtMoney(total);
+  if (bkMargin) bkMargin.textContent = fmtMoney(Math.max(0, margin));
+}
+
+// Live pawn bill preview as user types
+window.previewPawnBill = function() {
+  const id = document.getElementById('bk-pawn-id').value.trim();
+  const wrap = document.getElementById('bk-pawn-preview');
+  const content = document.getElementById('bk-pawn-preview-content');
+  if (!id) { wrap.style.display = 'none'; return; }
+  const loan = allLoans.find(l => String(l.receiptId) === id);
+  if (!loan) {
+    wrap.style.display = 'block';
+    content.innerHTML = `<div style="font-size:12px;color:var(--red)">No pawn loan found for bill #${esc(id)}</div>`;
+    return;
+  }
+  wrap.style.display = 'block';
+  content.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:13px;font-weight:500;color:var(--text)">${esc(loan.name)}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">${fmtDate(loan.date)} · ${Number(loan.weight).toFixed(2)}g</div>
+      </div>
+      <div style="font-family:var(--mono);font-size:14px;color:var(--gold)">${fmtMoneyFull(loan.amount)}</div>
+    </div>`;
+}
+
+window.addBankPledge = async function() {
+  const pawnBillId = document.getElementById('bk-pawn-id').value.trim();
+  const bankBillId = document.getElementById('bk-bank-id').value.trim();
+  const date       = document.getElementById('bk-date').value;
+  const bankAmount = document.getElementById('bk-amount').value;
+
+  let valid = true;
+  function setErr(id, msg) {
+    const e = document.getElementById(id);
+    if (msg) { e.textContent = msg; e.style.display = 'block'; valid = false; }
+    else { e.style.display = 'none'; e.textContent = ''; }
+  }
+
+  if (!pawnBillId) setErr('bk-err-pawn', 'Enter the original pawn bill ID.');
+  else setErr('bk-err-pawn', '');
+
+  if (!bankBillId) setErr('bk-err-bankid', 'Enter the bank loan bill ID.');
+  else setErr('bk-err-bankid', '');
+
+  if (!bankAmount || Number(bankAmount) <= 0) setErr('bk-err-amount', 'Enter the bank loan amount.');
+  else setErr('bk-err-amount', '');
+
+  if (!valid) return;
+
+  // Warn if pawn bill not found but don't block — might be personal gold
+  const linkedLoan = allLoans.find(l => String(l.receiptId) === pawnBillId);
+
+  try {
+    setSyncStatus('syncing');
+    await addDoc(bankCol, {
+      pawnBillId,
+      bankBillId,
+      date: date || today(),
+      bankAmount: parseInt(bankAmount),
+      linkedCustomer: linkedLoan ? linkedLoan.name : null,
+      linkedPawnAmount: linkedLoan ? Number(linkedLoan.amount) : null,
+      createdAt: Date.now()
+    });
+
+    // Reset form
+    ['bk-pawn-id','bk-bank-id','bk-amount'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('bk-date').value = today();
+    document.getElementById('bk-pawn-preview').style.display = 'none';
+    toast('Bank pledge added', 'success');
+  } catch(e) {
+    console.error(e);
+    toast('Error saving — check connection', 'error');
+    setSyncStatus('offline');
+  }
+}
+
+window.renderBankList = function() {
+  const q = (document.getElementById('bk-search')||{value:''}).value.trim().toLowerCase();
+  const cont = document.getElementById('bk-list');
+  if (!cont) return;
+
+  let list = [...allBankPledges];
+  if (q) list = list.filter(p =>
+    String(p.pawnBillId).includes(q) ||
+    String(p.bankBillId).toLowerCase().includes(q) ||
+    (p.linkedCustomer||'').toLowerCase().includes(q)
+  );
+
+  document.getElementById('bk-list-count').textContent = `(${list.length})`;
+
+  if (!list.length) {
+    cont.innerHTML = emptyState(q ? `No pledges matching "${esc(q)}"` : 'No bank pledges recorded yet.');
+    return;
+  }
+
+  cont.innerHTML = list.map(p => {
+    const pawnLoan = allLoans.find(l => String(l.receiptId) === String(p.pawnBillId));
+    const pawnAmt  = pawnLoan ? Number(pawnLoan.amount) : (p.linkedPawnAmount || 0);
+    const margin   = Number(p.bankAmount) - pawnAmt;
+    return `
+    <div class="card" style="margin-bottom:10px;border-color:#1A3A6A">
+      <div class="card-header">
+        <div>
+          <div class="bill-id" style="color:#4090D0">Bank Bill: ${esc(p.bankBillId)}</div>
+          <div class="cust-name">${p.linkedCustomer ? esc(p.linkedCustomer) : '<span style="color:var(--text3);font-size:13px">Personal / own gold</span>'}</div>
+        </div>
+        <div style="font-family:var(--mono);font-size:15px;font-weight:500;color:#4090D0">${fmtMoneyFull(p.bankAmount)}</div>
+      </div>
+      <div class="divider"></div>
+      <div class="field-grid">
+        <div><div class="field-k">Pawn bill ID</div><div class="field-v" style="font-family:var(--mono)">${esc(p.pawnBillId)||'—'}</div></div>
+        <div><div class="field-k">Date pledged</div><div class="field-v">${fmtDate(p.date)}</div></div>
+        <div><div class="field-k">Pawn amount</div><div class="field-v money">${pawnAmt ? fmtMoneyFull(pawnAmt) : '—'}</div></div>
+        <div><div class="field-k">Your margin</div><div class="field-v" style="color:${margin>=0?'var(--green)':'var(--red)'};font-family:var(--mono)">${margin>=0?'+':''}${fmtMoneyFull(margin)}</div></div>
+      </div>
+      <div class="card-actions">
+        ${pawnLoan ? `<div class="btn ghost" onclick="viewFromBank('${pawnLoan.firestoreId}')">
+          <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View pawn loan
+        </div>` : ''}
+        <div class="btn danger" onclick="deleteBankPledge('${p.pledgeId}','${esc(p.bankBillId)}')">
+          <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>Delete
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.viewFromBank = function(firestoreId) {
+  openDetail(firestoreId);
+}
+
+window.deleteBankPledge = function(pledgeId, bankBillId) {
+  showModal(`
+    <div class="modal-title">Delete bank pledge?</div>
+    <p style="font-size:13px;color:var(--text3);line-height:1.6">Bank Bill <strong style="color:var(--text)">${bankBillId}</strong> will be permanently removed. Cannot be undone.</p>
+    <div class="modal-actions">
+      <div class="btn ghost" style="flex:1" onclick="closeModal()">Cancel</div>
+      <div class="btn danger" style="flex:1" onclick="confirmDeleteBankPledge('${pledgeId}')">Delete</div>
+    </div>
+  `);
+}
+
+window.confirmDeleteBankPledge = async function(pledgeId) {
+  try {
+    await deleteDoc(doc(db, 'bankpledges', pledgeId));
+    closeModal(); toast('Bank pledge deleted');
+  } catch(e) { toast('Error deleting', 'error'); }
+}
+
 // ── DELETE AUDIT ──────────────────────────────────────────────────────────
 window.deleteAudit = function(auditId) {
   showModal(`
@@ -2334,6 +2601,10 @@ window.submitLoan = async function() {
 
 document.getElementById('f-date').value = today();
 document.getElementById('f-date').max = today();
+if (document.getElementById('bk-date')) {
+  document.getElementById('bk-date').value = today();
+  document.getElementById('bk-date').max = today();
+}
 document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
 
 setTimeout(()=>{
