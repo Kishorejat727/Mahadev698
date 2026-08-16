@@ -187,14 +187,15 @@ textarea{resize:none;height:64px;line-height:1.4}
 .audit-bar-wrap{height:5px;background:var(--border);border-radius:3px;overflow:hidden}
 .audit-bar-fill{height:100%;background:var(--gold);border-radius:3px;transition:width .4s ease}
 .audit-item{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:12px 14px;display:flex;align-items:center;gap:12px;transition:all .2s}
-.audit-item.verified-local{border-color:#1A4A7A;background:#0A1A2A18}
-.audit-item.verified-bank{border-color:#5A1A8A;background:#1A0A2A18}
+.audit-item.verified-local{border-color:#1A5A9A;background:#0A2040}
+.audit-item.verified-bank{border-color:#7A2AAA;background:#200A40}
 .audit-check{width:36px;height:36px;border-radius:50%;border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:all .2s}
 .audit-check svg{width:16px;height:16px;stroke:var(--text3);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;transition:all .2s}
-.audit-item.verified-local .audit-check{background:#0A1A2A;border-color:#60A8E0}
-.audit-item.verified-local .audit-check svg{stroke:#60A8E0}
-.audit-item.verified-bank .audit-check{background:#1A0A2A;border-color:#C060E0}
-.audit-item.verified-bank .audit-check svg{stroke:#C060E0}
+.audit-item.verified-local .audit-check{background:#1A4A8A;border-color:#60A8E0}
+.audit-item.verified-local .audit-check svg{stroke:#fff}
+.audit-item.verified-bank .audit-check{background:#6A1A9A;border-color:#C060E0}
+.audit-item.verified-bank .audit-check svg{stroke:#fff}
+.audit-item.verified-local .audit-item-name,.audit-item.verified-bank .audit-item-name{color:var(--text2)}
 .audit-item-info{flex:1;min-width:0}
 .audit-item-name{font-size:13px;font-weight:500;color:var(--text)}
 .audit-item-meta{font-size:11px;color:var(--text3);margin-top:2px}
@@ -562,26 +563,16 @@ textarea{resize:none;height:64px;line-height:1.4}
           </button>
         </div>
 
-        <!-- Search bill during audit -->
-        <div class="search-wrap" id="audit-search-wrap" style="display:none">
-          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="audit-bill-search" placeholder="Type bill ID or customer name…" oninput="renderAuditList()" autocomplete="off" autocorrect="off">
-        </div>
-
         <!-- Filter tabs -->
         <div class="audit-filter-tabs" id="audit-filter-tabs" style="display:none">
-          <div class="audit-filter-tab active" onclick="setAuditFilter('all')">All items</div>
-          <div class="audit-filter-tab" onclick="setAuditFilter('local')">
-            <span style="color:#60A8E0">⬤</span> Local Vault
-          </div>
-          <div class="audit-filter-tab" onclick="setAuditFilter('bank')">
-            <span style="color:#C060E0">⬤</span> Bank Vault
-          </div>
-          <div class="audit-filter-tab" onclick="setAuditFilter('unverified')">Unverified</div>
-          <div class="audit-filter-tab" onclick="setAuditFilter('unassigned')">Unassigned</div>
+          <div class="audit-filter-tab active" id="aft-all"      onclick="setAuditFilter('all')">All</div>
+          <div class="audit-filter-tab"        id="aft-unveri"   onclick="setAuditFilter('unverified')">Unverified</div>
+          <div class="audit-filter-tab"        id="aft-verified" onclick="setAuditFilter('verified')">Verified</div>
+          <div class="audit-filter-tab"        id="aft-local"    onclick="setAuditFilter('local')">Local</div>
+          <div class="audit-filter-tab"        id="aft-bank"     onclick="setAuditFilter('bank')">Bank</div>
         </div>
 
-        <!-- Audit item list - scrollable full height -->
+        <!-- Audit item list -->
         <div id="audit-list" style="min-height:0"></div>
 
         <!-- Past audit history -->
@@ -1487,45 +1478,43 @@ let auditsCol = collection(db, 'audits');
 
 window.setAuditFilter = function(f) {
   auditFilter = f;
-  document.querySelectorAll('.audit-filter-tab').forEach((t,i) => {
-    const filters = ['all','local','bank','unverified','unassigned'];
-    t.classList.toggle('active', filters[i] === f);
+  ['all','unveri','verified','local','bank'].forEach(id => {
+    const el = document.getElementById('aft-' + id);
+    if (el) el.classList.toggle('active', id === f || (id === 'unveri' && f === 'unverified'));
   });
   renderAuditList();
 }
 
 function refreshAuditSummary() {
-  const active = allLoans.filter(l=>l.status==='ACTIVE');
-  const local  = active.filter(l=>l.vault==='local'||!l.vault);
-  const bank   = active.filter(l=>l.vault==='bank');
+  const active = allLoans.filter(l => l.status === 'ACTIVE');
+  const local  = active.filter(l => l.vault === 'local' || !l.vault);
+  const bank   = active.filter(l => l.vault === 'bank');
 
-  const localGold   = local.filter(l=>!l.metal||l.metal==='gold'||l.metal==='mixed').reduce((s,l)=>s+Number(l.weight),0);
-  const localSilver = local.filter(l=>l.metal==='silver').reduce((s,l)=>s+Number(l.weight),0);
-  const localValue  = local.reduce((s,l)=>s+(Number(l.amount)||0),0);
+  const localGold   = local.filter(l => !l.metal || l.metal === 'gold' || l.metal === 'mixed').reduce((s,l) => s + Number(l.weight), 0);
+  const localSilver = local.filter(l => l.metal === 'silver').reduce((s,l) => s + Number(l.weight), 0);
+  const localValue  = local.reduce((s,l) => s + (Number(l.amount)||0), 0);
+  const bankGold    = bank.filter(l => !l.metal || l.metal === 'gold' || l.metal === 'mixed').reduce((s,l) => s + Number(l.weight), 0);
+  const bankSilver  = bank.filter(l => l.metal === 'silver').reduce((s,l) => s + Number(l.weight), 0);
+  const bankValue   = bank.reduce((s,l) => s + (Number(l.amount)||0), 0);
 
-  const bankGold    = bank.filter(l=>!l.metal||l.metal==='gold'||l.metal==='mixed').reduce((s,l)=>s+Number(l.weight),0);
-  const bankSilver  = bank.filter(l=>l.metal==='silver').reduce((s,l)=>s+Number(l.weight),0);
-  const bankValue   = bank.reduce((s,l)=>s+(Number(l.amount)||0),0);
-
-  document.getElementById('audit-local-count').textContent   = local.length + ' items';
-  document.getElementById('audit-local-weight').textContent  = localGold.toFixed(2) + ' g gold';
-  document.getElementById('audit-local-silver').textContent  = localSilver > 0 ? localSilver.toFixed(2) + ' g silver' : '';
-  document.getElementById('audit-local-value').textContent   = '₹' + localValue.toLocaleString('en-IN');
-  document.getElementById('audit-bank-count').textContent    = bank.length + ' items';
-  document.getElementById('audit-bank-weight').textContent   = bankGold.toFixed(2) + ' g gold';
-  document.getElementById('audit-bank-silver').textContent   = bankSilver > 0 ? bankSilver.toFixed(2) + ' g silver' : '';
-  document.getElementById('audit-bank-value').textContent    = '₹' + bankValue.toLocaleString('en-IN');
+  document.getElementById('audit-local-count').textContent  = local.length + ' items';
+  document.getElementById('audit-local-weight').textContent = localGold.toFixed(2) + ' g gold';
+  document.getElementById('audit-local-silver').textContent = localSilver > 0 ? localSilver.toFixed(2) + ' g silver' : '';
+  document.getElementById('audit-local-value').textContent  = '₹' + localValue.toLocaleString('en-IN');
+  document.getElementById('audit-bank-count').textContent   = bank.length + ' items';
+  document.getElementById('audit-bank-weight').textContent  = bankGold.toFixed(2) + ' g gold';
+  document.getElementById('audit-bank-silver').textContent  = bankSilver > 0 ? bankSilver.toFixed(2) + ' g silver' : '';
+  document.getElementById('audit-bank-value').textContent   = '₹' + bankValue.toLocaleString('en-IN');
 }
 
 function updateAuditProgress() {
-  const active = allLoans.filter(l=>l.status==='ACTIVE');
-  const total = active.length;
-  const verified = active.filter(l=>auditVerified[l.firestoreId]).length;
-  const pct = total===0 ? 0 : Math.round(verified/total*100);
-  document.getElementById('audit-progress-pct').textContent = pct + '%';
-  document.getElementById('audit-bar').style.width = pct + '%';
-  document.getElementById('audit-progress-label').textContent =
-    `${verified} of ${total} items verified`;
+  const active   = allLoans.filter(l => l.status === 'ACTIVE');
+  const total    = active.length;
+  const verified = active.filter(l => auditVerified[l.firestoreId]).length;
+  const pct      = total === 0 ? 0 : Math.round(verified / total * 100);
+  document.getElementById('audit-progress-pct').textContent   = pct + '%';
+  document.getElementById('audit-bar').style.width            = pct + '%';
+  document.getElementById('audit-progress-label').textContent = `${verified} of ${total} items verified`;
 }
 
 function renderAuditList() {
@@ -1533,91 +1522,59 @@ function renderAuditList() {
   if (!auditActive) { cont.innerHTML = ''; return; }
 
   const active = allLoans.filter(l => l.status === 'ACTIVE');
-  if (!active.length) {
-    cont.innerHTML = emptyState('No active loans to audit.');
+  if (!active.length) { cont.innerHTML = emptyState('No active loans to audit.'); return; }
+
+  // Apply filter
+  let list = active;
+  if      (auditFilter === 'unverified') list = active.filter(l => !auditVerified[l.firestoreId]);
+  else if (auditFilter === 'verified')   list = active.filter(l =>  auditVerified[l.firestoreId]);
+  else if (auditFilter === 'local')      list = active.filter(l => !l.vault || l.vault === 'local');
+  else if (auditFilter === 'bank')       list = active.filter(l =>  l.vault === 'bank');
+
+  if (!list.length) {
+    cont.innerHTML = `<div style="text-align:center;padding:24px;background:var(--surface);border-radius:var(--r2);color:var(--text3);font-size:13px">No items in this category.</div>`;
     return;
   }
 
-  const searchEl = document.getElementById('audit-bill-search');
-  const q = (searchEl ? searchEl.value.trim() : '').toLowerCase();
-
-  // Apply vault/status filter tab
-  let pool = active;
-  if      (auditFilter === 'local')      pool = active.filter(l => !l.vault || l.vault === 'local');
-  else if (auditFilter === 'bank')       pool = active.filter(l => l.vault === 'bank');
-  else if (auditFilter === 'unverified') pool = active.filter(l => !auditVerified[l.firestoreId]);
-  else if (auditFilter === 'unassigned') pool = active.filter(l => !l.vault);
-
-  // Apply search
-  if (q) {
-    pool = pool.filter(l =>
-      String(l.receiptId).toLowerCase().includes(q) ||
-      (l.name || '').toLowerCase().includes(q) ||
-      (l.phone || '').includes(q)
-    );
-  }
-
-  // Split into unverified and verified
-  let unverified = pool.filter(l => !auditVerified[l.firestoreId]);
-  let verified   = pool.filter(l =>  auditVerified[l.firestoreId]);
-
-  // Unverified filter tab: pool is already only unverified, so show all as "to verify", none as verified
-  if (auditFilter === 'unverified') verified = [];
-
-  if (!pool.length && q) {
-    cont.innerHTML = `<div style="text-align:center;padding:24px;background:var(--surface);border-radius:var(--r2);color:var(--text3);font-size:13px">
-      No bills matching "<strong style="color:var(--text)">${esc(q)}</strong>"
-    </div>`;
+  // On 'all' tab — show unverified first, then verified with a divider
+  if (auditFilter === 'all') {
+    const unverified = list.filter(l => !auditVerified[l.firestoreId]);
+    const verified   = list.filter(l =>  auditVerified[l.firestoreId]);
+    let html = '';
+    if (unverified.length) {
+      html += `<div style="font-size:10px;font-weight:600;color:var(--amber);letter-spacing:.07em;text-transform:uppercase;padding:4px 0 6px">⬤ Unverified — ${unverified.length}</div>`;
+      html += unverified.map(l => auditItemRow(l)).join('');
+    }
+    if (verified.length) {
+      html += `<div style="font-size:10px;font-weight:600;color:var(--green);letter-spacing:.07em;text-transform:uppercase;padding:${unverified.length?'14px':4}px 0 6px">✓ Verified — ${verified.length}</div>`;
+      html += verified.map(l => auditItemRow(l)).join('');
+    }
+    cont.innerHTML = html;
     return;
   }
 
-  let html = '';
-
-  // Unverified section
-  if (unverified.length) {
-    html += `<div style="font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px">
-      To verify — ${unverified.length} remaining
-    </div>`;
-    html += unverified.map(l => auditItemRow(l)).join('');
-  }
-
-  // Verified section
-  if (verified.length) {
-    html += `<div style="font-size:10px;font-weight:600;color:var(--green);letter-spacing:.08em;text-transform:uppercase;margin:${unverified.length?'14px':0} 0 6px;display:flex;align-items:center;gap:6px">
-      <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"><polyline points="20 6 9 17 4 12"/></svg>
-      Verified — ${verified.length} done
-    </div>`;
-    html += verified.map(l => auditItemRow(l)).join('');
-  }
-
-  if (!html) {
-    html = `<div style="text-align:center;padding:24px;background:var(--surface);border-radius:var(--r2);color:var(--text3);font-size:13px">
-      No items in this category. Try a different filter.
-    </div>`;
-  }
-
-  cont.innerHTML = html;
+  cont.innerHTML = list.map(l => auditItemRow(l)).join('');
 }
 
 function auditItemRow(l) {
-  const v = l.vault || 'local';
+  const v          = l.vault || 'local';
   const isVerified = !!auditVerified[l.firestoreId];
-  const verifiedClass = isVerified ? (v === 'local' ? ' verified-local' : ' verified-bank') : '';
-  const metalTag = l.metal && l.metal !== 'gold'
-    ? `<span style="font-size:10px;padding:1px 5px;border-radius:10px;background:#1A1A2A;border:1px solid #3A3A5A;color:#A0A0C0;margin-left:4px">${esc(l.metal)}</span>`
+  const verClass   = isVerified ? (v === 'local' ? ' verified-local' : ' verified-bank') : '';
+  const metalTag   = l.metal && l.metal !== 'gold'
+    ? `<span style="font-size:10px;padding:1px 6px;border-radius:10px;background:#1A1A2A;border:1px solid #3A3A5A;color:#A0A0C0;margin-left:4px">${esc(l.metal)}</span>`
     : '';
   return `
-  <div class="audit-item${verifiedClass}" id="aitem-${l.firestoreId}" style="margin-bottom:6px">
+  <div class="audit-item${verClass}" id="aitem-${l.firestoreId}" style="margin-bottom:6px">
     <div class="audit-check" onclick="toggleVerify('${l.firestoreId}')">
       <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
     </div>
     <div class="audit-item-info">
       <div class="audit-item-name">${esc(l.name)}</div>
       <div class="audit-item-meta">
-        <span class="vault-badge ${v}" style="font-size:10px;padding:2px 6px">${v === 'local' ? 'Local' : 'Bank'}</span>${metalTag}
-        · <span style="font-family:var(--mono);font-weight:500">${esc(String(l.receiptId))}</span>
+        <span class="vault-badge ${v}" style="font-size:10px;padding:2px 7px">${v === 'local' ? '🔒 Local' : '🏦 Bank'}</span>${metalTag}
+        · <span style="font-family:var(--mono);font-weight:500;color:var(--gold)">${esc(String(l.receiptId))}</span>
       </div>
-      <div class="audit-item-meta" style="margin-top:2px">${esc((l.items || '—').substring(0, 40))}</div>
+      <div class="audit-item-meta" style="margin-top:2px;color:var(--text3)">${esc((l.items || '—').substring(0,40))}</div>
     </div>
     <div class="audit-item-right">
       <div class="audit-item-weight">${Number(l.weight).toFixed(2)}g</div>
@@ -1629,25 +1586,41 @@ function auditItemRow(l) {
 window.toggleVerify = function(firestoreId) {
   auditVerified[firestoreId] = !auditVerified[firestoreId];
   updateAuditProgress();
-  renderAuditList();
+  // Update just this item's class in-place without re-rendering whole list
+  const loan = allLoans.find(l => l.firestoreId === firestoreId);
+  const v    = (loan && loan.vault) || 'local';
+  const el   = document.getElementById('aitem-' + firestoreId);
+  if (el) {
+    if (auditVerified[firestoreId]) {
+      el.classList.add(v === 'local' ? 'verified-local' : 'verified-bank');
+    } else {
+      el.classList.remove('verified-local', 'verified-bank');
+    }
+    const check = el.querySelector('.audit-check');
+    if (check) check.style.transition = 'all .15s';
+  }
+  // If on a filter tab (not all), re-render so item moves to correct section
+  if (auditFilter !== 'all') renderAuditList();
 }
 
 window.startAudit = function() {
-  auditActive = true;
+  auditActive   = true;
   auditVerified = {};
-  auditFilter = 'all';
-  document.getElementById('audit-bill-search').value = '';
-  document.getElementById('audit-search-wrap').style.display = 'block';
-  document.getElementById('audit-start-btn').style.display = 'none';
-  document.getElementById('audit-end-btn').style.display = 'flex';
+  auditFilter   = 'all';
+  document.getElementById('audit-start-btn').style.display   = 'none';
+  document.getElementById('audit-end-btn').style.display     = 'flex';
   document.getElementById('audit-progress-wrap').style.display = 'block';
   document.getElementById('audit-filter-tabs').style.display = 'flex';
   document.getElementById('audit-history-label').style.display = 'none';
-  document.getElementById('audit-history').style.display = 'none';
-  document.querySelectorAll('.audit-filter-tab').forEach((t,i)=>t.classList.toggle('active',i===0));
+  document.getElementById('audit-history').style.display     = 'none';
+  // Reset filter tab highlight
+  ['all','unveri','verified','local','bank'].forEach(id => {
+    const el = document.getElementById('aft-' + id);
+    if (el) el.classList.toggle('active', id === 'all');
+  });
   updateAuditProgress();
   renderAuditList();
-  toast('Audit started — verify each item');
+  toast('Audit started — tap ✓ to mark each item verified');
 }
 
 window.endAudit = async function() {
@@ -1722,15 +1695,13 @@ window.saveAudit = async function(total,verified,missing,localCount,bankCount,lo
   closeModal();
   auditActive = false;
   auditVerified = {};
-  document.getElementById('audit-search-wrap').style.display = 'none';
-  document.getElementById('audit-start-btn').style.display = 'flex';
-  document.getElementById('audit-end-btn').style.display = 'none';
+  document.getElementById('audit-start-btn').style.display   = 'flex';
+  document.getElementById('audit-end-btn').style.display     = 'none';
   document.getElementById('audit-progress-wrap').style.display = 'none';
   document.getElementById('audit-filter-tabs').style.display = 'none';
   document.getElementById('audit-history-label').style.display = 'block';
-  document.getElementById('audit-history').style.display = 'block';
+  document.getElementById('audit-history').style.display     = 'block';
   document.getElementById('audit-list').innerHTML = '';
-  document.getElementById('audit-bill-search').value = '';
   loadAuditHistory();
 }
 
@@ -1751,6 +1722,27 @@ async function loadAuditHistory() {
 
     cont.innerHTML = docs.map(a => {
       const aid = a.id;
+      const verifiedIds = a.verifiedIds || [];
+      // Build verified bills list
+      const verifiedLoans   = verifiedIds.map(id => allLoans.find(l => l.firestoreId === id)).filter(Boolean);
+      const unverifiedLoans = allLoans.filter(l =>
+        l.status === 'ACTIVE' &&
+        a.verifiedIds &&
+        !verifiedIds.includes(l.firestoreId)
+      );
+      const verifiedRows = verifiedLoans.map(l =>
+        `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px">
+          <span style="color:var(--text2)">${esc(l.name)}</span>
+          <span style="font-family:var(--mono);color:var(--green)">#${esc(String(l.receiptId))}</span>
+        </div>`
+      ).join('');
+      const unverifiedRows = unverifiedLoans.slice(0,20).map(l =>
+        `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px">
+          <span style="color:var(--text2)">${esc(l.name)}</span>
+          <span style="font-family:var(--mono);color:var(--amber)">#${esc(String(l.receiptId))}</span>
+        </div>`
+      ).join('');
+
       return `<div class="audit-session-card" style="margin-bottom:8px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
           <div class="audit-session-date">${fmtDate(a.date)}</div>
@@ -1761,13 +1753,32 @@ async function loadAuditHistory() {
         </div>
         <div class="audit-session-stats">
           <div class="audit-session-stat"><div class="audit-session-val" style="color:var(--green)">${a.verified||0}</div><div class="audit-session-lbl">Verified</div></div>
-          <div class="audit-session-stat"><div class="audit-session-val" style="color:var(--red)">${a.missing||0}</div><div class="audit-session-lbl">Unverified</div></div>
+          <div class="audit-session-stat"><div class="audit-session-val" style="color:var(--amber)">${a.missing||0}</div><div class="audit-session-lbl">Unverified</div></div>
           <div class="audit-session-stat"><div class="audit-session-val">${a.total||0}</div><div class="audit-session-lbl">Total</div></div>
         </div>
         <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
           <span class="vault-badge local">🔒 ${a.localCount||0} items · ${a.localGold||0}g</span>
           <span class="vault-badge bank">🏦 ${a.bankCount||0} items · ${a.bankGold||0}g</span>
         </div>
+        ${verifiedIds.length ? `
+        <div style="margin-top:10px">
+          <div style="display:flex;gap:6px">
+            <div onclick="toggleAuditDetail('av-${aid}')" style="flex:1;text-align:center;padding:6px;background:#081A0F;border:1px solid #1A5030;border-radius:var(--r);font-size:11px;font-weight:500;color:var(--green);cursor:pointer">
+              ✓ Show verified (${verifiedLoans.length})
+            </div>
+            <div onclick="toggleAuditDetail('au-${aid}')" style="flex:1;text-align:center;padding:6px;background:#1C1000;border:1px solid #5A2A00;border-radius:var(--r);font-size:11px;font-weight:500;color:var(--amber);cursor:pointer">
+              ⬤ Show unverified (${a.missing||0})
+            </div>
+          </div>
+          <div id="av-${aid}" style="display:none;margin-top:8px;max-height:200px;overflow-y:auto">
+            <div style="font-size:10px;color:var(--green);font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em">Verified items</div>
+            ${verifiedRows || '<div style="font-size:12px;color:var(--text3);padding:8px 0">None</div>'}
+          </div>
+          <div id="au-${aid}" style="display:none;margin-top:8px;max-height:200px;overflow-y:auto">
+            <div style="font-size:10px;color:var(--amber);font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em">Unverified items</div>
+            ${unverifiedRows || '<div style="font-size:12px;color:var(--text3);padding:8px 0">None — all verified!</div>'}
+          </div>
+        </div>` : ''}
       </div>`;
     }).join('');
   } catch(e) {
@@ -1776,7 +1787,16 @@ async function loadAuditHistory() {
   }
 }
 
-// Patch switchScreen to load audit data
+window.toggleAuditDetail = function(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  // Close sibling panel (av/au)
+  const isVerified = id.startsWith('av-');
+  const auditId    = id.slice(3);
+  const sibling    = document.getElementById((isVerified ? 'au-' : 'av-') + auditId);
+  if (sibling && sibling.style.display !== 'none') sibling.style.display = 'none';
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
 const _origSwitch = window.switchScreen;
 window.switchScreen = function(name) {
   _origSwitch(name);
