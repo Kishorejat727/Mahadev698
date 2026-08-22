@@ -769,7 +769,7 @@ textarea{resize:none;height:64px;line-height:1.4}
 <!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query, enableIndexedDbPersistence, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { getFirestore, collection, doc, addDoc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, query, enableIndexedDbPersistence, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
 
 const firebaseConfig = {
@@ -898,7 +898,21 @@ onSnapshot(q, (snapshot) => {
   const activeScreen = document.querySelector('.screen.active');
   if (activeScreen && activeScreen.id === 'screen-due') renderDueList();
   if (activeScreen && activeScreen.id === 'screen-search') doSearch();
-  if (activeScreen && activeScreen.id === 'screen-audit') { refreshAuditSummary(); if(auditActive) renderAuditList(); }
+  if (activeScreen && activeScreen.id === 'screen-audit') {
+    refreshAuditSummary();
+    if (auditActive) {
+      renderAuditList();
+    } else {
+      // Check if there's an unfinished draft — highlight Start button
+      loadAuditDraft().then(draft => {
+        const btn = document.getElementById('audit-start-btn');
+        if (draft && draft.verifiedIds && draft.verifiedIds.length > 0 && btn) {
+          btn.innerHTML = btn.innerHTML.replace(/Start Audit|Continue Audit/, 'Continue Audit');
+          btn.style.background = '#1A4A2A';
+        }
+      });
+    }
+  }
   if (activeScreen && activeScreen.id === 'screen-reports') renderReports();
   if (activeScreen && activeScreen.id === 'screen-bank') { refreshBankSummary(); renderBankList(); }
 }, (err) => {
@@ -1475,6 +1489,32 @@ let auditActive = false;
 let auditVerified = {}; // firestoreId -> true
 let auditFilter = 'all';
 let auditsCol = collection(db, 'audits');
+const AUDIT_DRAFT_ID = 'current_draft';
+
+// Save in-progress audit to Firestore so it survives app restarts
+async function saveAuditDraft() {
+  try {
+    await setDoc(doc(db, 'audits', AUDIT_DRAFT_ID), {
+      isDraft: true,
+      verifiedIds: Object.keys(auditVerified).filter(id => auditVerified[id]),
+      savedAt: Date.now()
+    });
+  } catch(e) { console.warn('Draft save failed:', e); }
+}
+
+async function loadAuditDraft() {
+  try {
+    const snap = await getDoc(doc(db, 'audits', AUDIT_DRAFT_ID));
+    if (snap.exists() && snap.data().isDraft) {
+      return snap.data();
+    }
+  } catch(e) { console.warn('Draft load failed:', e); }
+  return null;
+}
+
+async function clearAuditDraft() {
+  try { await deleteDoc(doc(db, 'audits', AUDIT_DRAFT_ID)); } catch(e) {}
+}
 
 window.setAuditFilter = function(f) {
   auditFilter = f;
@@ -1586,41 +1626,80 @@ function auditItemRow(l) {
 window.toggleVerify = function(firestoreId) {
   auditVerified[firestoreId] = !auditVerified[firestoreId];
   updateAuditProgress();
-  // Update just this item's class in-place without re-rendering whole list
+  // Update this item's class in-place
   const loan = allLoans.find(l => l.firestoreId === firestoreId);
   const v    = (loan && loan.vault) || 'local';
   const el   = document.getElementById('aitem-' + firestoreId);
   if (el) {
     if (auditVerified[firestoreId]) {
+      el.classList.remove('verified-local', 'verified-bank');
       el.classList.add(v === 'local' ? 'verified-local' : 'verified-bank');
     } else {
       el.classList.remove('verified-local', 'verified-bank');
     }
-    const check = el.querySelector('.audit-check');
-    if (check) check.style.transition = 'all .15s';
   }
-  // If on a filter tab (not all), re-render so item moves to correct section
+  // Re-render if on a filter tab so item moves to correct section
   if (auditFilter !== 'all') renderAuditList();
+  // Persist progress to Firestore
+  saveAuditDraft();
 }
 
-window.startAudit = function() {
-  auditActive   = true;
+window.startAudit = async function() {
+  // Check for existing draft
+  const draft = await loadAuditDraft();
+  if (draft && draft.verifiedIds && draft.verifiedIds.length > 0) {
+    const savedAt = draft.savedAt ? new Date(draft.savedAt).toLocaleString('en-IN') : 'earlier';
+    showModal(`
+      <div class="modal-title">Resume previous audit?</div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:4px">
+        You have an unfinished audit saved at <strong style="color:var(--text)">${savedAt}</strong>
+        with <strong style="color:var(--green)">${draft.verifiedIds.length} items</strong> already verified.
+      </p>
+      <div class="modal-actions" style="flex-direction:column;gap:8px">
+        <div class="btn primary" style="flex:none;width:100%;padding:12px" onclick="closeModal();resumeAudit(${JSON.stringify(draft.verifiedIds).replace(/"/g,'&quot;')})">
+          ↩ Continue where I left off
+        </div>
+        <div class="btn danger" style="flex:none;width:100%;padding:12px" onclick="closeModal();freshAudit()">
+          ✕ Discard and start fresh
+        </div>
+        <div class="btn ghost" style="flex:none;width:100%;padding:10px" onclick="closeModal()">Cancel</div>
+      </div>
+    `);
+    return;
+  }
+  freshAudit();
+}
+
+window.resumeAudit = function(verifiedIds) {
+  auditVerified = {};
+  verifiedIds.forEach(id => { auditVerified[id] = true; });
+  auditFilter = 'all';
+  activateAuditUI();
+  toast(`Resumed — ${verifiedIds.length} items already verified`);
+}
+
+window.freshAudit = async function() {
+  await clearAuditDraft();
   auditVerified = {};
   auditFilter   = 'all';
-  document.getElementById('audit-start-btn').style.display   = 'none';
-  document.getElementById('audit-end-btn').style.display     = 'flex';
+  activateAuditUI();
+  toast('Audit started — tap ✓ to mark each item verified');
+}
+
+function activateAuditUI() {
+  auditActive = true;
+  document.getElementById('audit-start-btn').style.display    = 'none';
+  document.getElementById('audit-end-btn').style.display      = 'flex';
   document.getElementById('audit-progress-wrap').style.display = 'block';
-  document.getElementById('audit-filter-tabs').style.display = 'flex';
+  document.getElementById('audit-filter-tabs').style.display  = 'flex';
   document.getElementById('audit-history-label').style.display = 'none';
-  document.getElementById('audit-history').style.display     = 'none';
-  // Reset filter tab highlight
+  document.getElementById('audit-history').style.display      = 'none';
   ['all','unveri','verified','local','bank'].forEach(id => {
     const el = document.getElementById('aft-' + id);
     if (el) el.classList.toggle('active', id === 'all');
   });
   updateAuditProgress();
   renderAuditList();
-  toast('Audit started — tap ✓ to mark each item verified');
 }
 
 window.endAudit = async function() {
@@ -1685,11 +1764,12 @@ window.saveAudit = async function(total,verified,missing,localCount,bankCount,lo
     const verifiedIds = Object.keys(auditVerified).filter(id=>auditVerified[id]);
     await addDoc(auditsCol, {
       date: today(),
-      timestamp: Date.now(), // use epoch number, not serverTimestamp, to avoid orderBy issues
+      timestamp: Date.now(),
       total, verified, missing, localCount, bankCount,
       localGold: parseFloat(localGold), bankGold: parseFloat(bankGold),
       verifiedIds
     });
+    await clearAuditDraft(); // draft completed — remove it
     toast('Audit saved successfully','success');
   } catch(e) { console.error(e); toast('Error saving audit','error'); }
   closeModal();
