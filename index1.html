@@ -1,0 +1,2640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0F0E0A">
+<title>Mahadev Pawn — Gold Lending Suite</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0F0E0A;--surface:#1A1810;--card:#211F15;--card2:#282518;--border:#3A3620;--border2:#4A4528;
+  --gold:#C9962A;--gold-light:#E8C060;--gold-dim:#8A6515;--text:#F0EAD8;--text2:#A09070;--text3:#6A6050;
+  --amber:#E07B2E;--green:#4CAF80;--red:#C84040;--yellow:#C9B020;
+  --font:'Noto Sans',sans-serif;--mono:'Roboto Mono',monospace;--r:10px;--r2:14px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;line-height:1.5;overflow:hidden}
+#app{display:flex;flex-direction:column;height:100vh;max-width:480px;margin:0 auto;position:relative}
+
+/* SYNC BANNER */
+#sync-banner{background:#1A1000;border-bottom:1px solid #5A2A00;padding:6px 16px;font-size:11px;color:var(--amber);text-align:center;display:none;align-items:center;justify-content:center;gap:6px;flex-shrink:0}
+#sync-banner.show{display:flex}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--amber);animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* LOADING SCREEN */
+#loading-screen{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.loading-logo-mark{width:56px;height:56px;border-radius:14px;background:var(--gold);display:flex;align-items:center;justify-content:center}
+.loading-logo-mark svg{width:32px;height:32px;fill:#1A1208}
+.loading-name{font-size:22px;font-weight:600;color:var(--text);letter-spacing:0.02em}
+.loading-sub{font-size:12px;color:var(--text3);letter-spacing:0.06em;text-transform:uppercase}
+.loading-bar{width:120px;height:2px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:8px}
+.loading-bar-fill{height:100%;background:var(--gold);border-radius:2px;animation:load 1.8s ease-in-out infinite}
+@keyframes load{0%{width:0;margin-left:0}50%{width:80px}100%{width:0;margin-left:120px}}
+
+/* TOPBAR */
+#topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 10px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.logo{display:flex;align-items:center;gap:9px}
+.logo-mark{width:30px;height:30px;border-radius:8px;background:var(--gold);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-mark svg{width:17px;height:17px;fill:#1A1208}
+.logo-name{font-size:15px;font-weight:600;color:var(--text);letter-spacing:0.02em}
+.logo-sub{font-size:10px;color:var(--text3);letter-spacing:0.06em;text-transform:uppercase}
+#topbar-right{display:flex;align-items:center;gap:8px}
+#topbar-date{font-family:var(--mono);font-size:11px;color:var(--text3);background:var(--card);border:1px solid var(--border);padding:4px 10px;border-radius:20px}
+#sync-icon{width:20px;height:20px;flex-shrink:0}
+#sync-icon svg{width:20px;height:20px;stroke:var(--green);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#sync-icon.syncing svg{stroke:var(--amber);animation:spin .9s linear infinite}
+#sync-icon.offline svg{stroke:var(--text3)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* GOLD RULE */
+.gold-rule{height:1px;background:linear-gradient(90deg,transparent,var(--gold-dim) 25%,var(--gold) 50%,var(--gold-dim) 75%,transparent);flex-shrink:0}
+
+/* BOTTOM NAV */
+#nav{display:flex;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0 10px;font-size:10px;color:var(--text3);cursor:pointer;position:relative;transition:color .15s}
+.nav-item.active{color:var(--gold)}
+.nav-item svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.nav-badge{position:absolute;top:6px;right:calc(50% - 18px);background:var(--red);color:#fff;font-size:9px;font-family:var(--mono);font-weight:500;border-radius:10px;padding:1px 5px;min-width:16px;text-align:center}
+
+/* SCREENS */
+#screens{flex:1;overflow:hidden;position:relative}
+.screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;display:none;padding-bottom:16px}
+.screen.active{display:block}
+.screen-body{padding:14px 16px;display:flex;flex-direction:column;gap:14px}
+
+.sec-label{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:0.09em;text-transform:uppercase}
+
+.stat-row{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.stat{background:var(--surface);border-radius:var(--r);padding:10px 10px 8px;border:1px solid var(--border)}
+.stat-label{font-size:10px;color:var(--text3);margin-bottom:3px}
+.stat-val{font-family:var(--mono);font-size:20px;font-weight:500;color:var(--gold)}
+.stat-sub{font-size:10px;color:var(--text3);margin-top:1px}
+
+.alert-row{display:flex;flex-direction:column;gap:8px}
+.alert{border-radius:var(--r);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;border:1px solid;cursor:pointer;transition:opacity .15s}
+.alert:active{opacity:.7}
+.alert.overdue{background:#1C1000;border-color:#5A2A00}
+.alert.due{background:#1A1A00;border-color:#4A4200}
+.alert.critical{background:#1A0000;border-color:#5A1010}
+.alert-left{display:flex;align-items:center;gap:10px}
+.alert-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.alert-dot.amber{background:var(--amber)}.alert-dot.yellow{background:var(--yellow)}.alert-dot.red{background:var(--red)}
+.alert-name{font-size:13px;font-weight:500;color:var(--text)}
+.alert-meta{font-size:11px;color:var(--text3);margin-top:1px}
+.alert-count{font-family:var(--mono);font-size:24px;font-weight:500}
+.alert-count.amber{color:var(--amber)}.alert-count.yellow{color:var(--yellow)}.alert-count.red{color:var(--red)}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:14px 16px}
+.card.critical-border{border-color:#5A1010}
+.card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
+.bill-id{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.cust-name{font-size:15px;font-weight:500;color:var(--text);margin-top:2px}
+.pill{font-size:10px;padding:3px 9px;border-radius:20px;font-weight:500;white-space:nowrap}
+.pill.active{background:#1C1000;color:var(--amber);border:1px solid #5A2A00}
+.pill.released{background:#081A0F;color:var(--green);border:1px solid #1A5030}
+.pill.overdue{background:#1A1000;color:var(--red);border:1px solid #4A1010}
+.pill.critical{background:#1A0000;color:var(--red);border:1px solid #5A1010}
+.pill.due{background:#1A1A00;color:var(--yellow);border:1px solid #4A4200}
+.divider{height:1px;background:var(--border);margin:12px 0}
+.field-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 14px}
+.field-k{font-size:10px;color:var(--text3);margin-bottom:2px}
+.field-v{font-size:13px;color:var(--text);font-weight:500}
+.field-v.money{font-family:var(--mono);color:var(--gold)}
+.card-actions{display:flex;gap:8px;margin-top:14px}
+.btn{flex:1;padding:9px 0;border-radius:var(--r);font-size:12px;font-weight:500;text-align:center;cursor:pointer;border:1px solid;display:flex;align-items:center;justify-content:center;gap:5px;transition:opacity .15s;text-decoration:none;color:inherit}
+.btn:active{opacity:.65}
+.btn.primary{background:var(--gold);border-color:var(--gold);color:#1A1208}
+.btn.sms{background:transparent;border-color:#3A3800;color:var(--yellow)}
+.btn.wa{background:transparent;border-color:#0A2A15;color:var(--green)}
+.btn.danger{background:transparent;border-color:#3A1010;color:var(--red)}
+.btn.ghost{background:transparent;border-color:var(--border);color:var(--text2)}
+.btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+.form-section{display:flex;flex-direction:column;gap:12px}
+.input-group{display:flex;flex-direction:column;gap:5px}
+.input-row{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+label.lbl{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:0.04em;text-transform:uppercase}
+input,textarea,select{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;font-size:14px;color:var(--text);font-family:var(--font);width:100%;outline:none;transition:border-color .15s;-webkit-appearance:none}
+input:focus,textarea:focus,select:focus{border-color:var(--gold-dim)}
+input::placeholder,textarea::placeholder{color:var(--text3)}
+textarea{resize:none;height:64px;line-height:1.4}
+.input-error{border-color:var(--red)!important}
+.error-msg{font-size:11px;color:var(--red);margin-top:2px;display:none}
+.photo-slot{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px dashed var(--border2);border-radius:var(--r);padding:12px;cursor:pointer;transition:border-color .15s}
+.photo-slot:active{border-color:var(--gold-dim)}
+.photo-icon{width:38px;height:38px;border-radius:var(--r);background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.photo-icon svg{width:18px;height:18px;stroke:var(--text3);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.photo-text strong{display:block;font-size:13px;color:var(--text);font-weight:500;margin-bottom:2px}
+.photo-text span{font-size:11px;color:var(--text3)}
+.submit-btn{background:var(--gold);border:none;border-radius:var(--r);padding:14px;font-size:15px;font-weight:600;color:#1A1208;display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;width:100%;letter-spacing:0.02em;transition:opacity .15s;font-family:var(--font)}
+.submit-btn:active{opacity:.75}
+.submit-btn svg{width:19px;height:19px;stroke:#1A1208;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.submit-btn:disabled{opacity:.5;cursor:not-allowed}
+#photo-input{display:none}
+
+.search-wrap{position:relative}
+.search-wrap svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:17px;height:17px;stroke:var(--text3);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.search-wrap input{padding-left:38px}
+
+.cust-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden}
+.cust-header{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border)}
+.avatar{width:42px;height:42px;border-radius:50%;background:#1C1000;border:1px solid #5A2A00;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--amber);flex-shrink:0}
+.cust-info-name{font-size:15px;font-weight:500;color:var(--text)}
+.cust-info-total{font-size:12px;color:var(--text3);margin-top:2px}
+.cust-info-total span{color:var(--gold);font-family:var(--mono)}
+.tl-item{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:background .15s}
+.tl-item:last-child{border-bottom:none}
+.tl-item:active{background:var(--card2)}
+.tl-bill{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.tl-date{font-size:12px;color:var(--text2);margin-top:2px}
+.tl-amt{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--text);text-align:right}
+.tl-pill{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;margin-top:3px;font-weight:500}
+.tl-pill.active{background:#1C1000;color:var(--amber)}
+.tl-pill.released{background:#081A0F;color:var(--green)}
+
+/* VAULT TOGGLE */
+.vault-toggle{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.vault-opt{padding:10px 0;text-align:center;font-size:13px;font-weight:500;color:var(--text3);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px}
+.vault-opt svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.vault-opt.active.local{background:#0A1A2A;color:#60A8E0;border:1px solid #1A4A7A}
+.vault-opt.active.bank{background:#1A0A2A;color:#C060E0;border:1px solid #5A1A8A}
+.vault-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border-radius:20px;font-weight:500}
+.vault-badge.local{background:#0A1A2A;color:#60A8E0;border:1px solid #1A4A7A}
+.vault-badge.bank{background:#1A0A2A;color:#C060E0;border:1px solid #5A1A8A}
+.vault-badge svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* AUDIT SCREEN */
+.audit-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.audit-vault-card{border-radius:var(--r);padding:12px;border:1px solid}
+.audit-vault-card.local{background:#0A1A2A;border-color:#1A4A7A}
+.audit-vault-card.bank{background:#1A0A2A;border-color:#5A1A8A}
+.audit-vault-title{font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:5px}
+.audit-vault-title svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.audit-vault-card.local .audit-vault-title{color:#60A8E0}
+.audit-vault-card.bank .audit-vault-title{color:#C060E0}
+.audit-vault-stat{font-family:var(--mono);font-size:22px;font-weight:500;color:var(--text)}
+.audit-vault-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.audit-progress{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:14px 16px}
+.audit-progress-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.audit-progress-title{font-size:13px;font-weight:500;color:var(--text)}
+.audit-progress-pct{font-family:var(--mono);font-size:13px;color:var(--gold)}
+.audit-bar-wrap{height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.audit-bar-fill{height:100%;background:var(--gold);border-radius:3px;transition:width .4s ease}
+.audit-item{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:12px 14px;display:flex;align-items:center;gap:12px;transition:all .2s}
+.audit-item.verified-local{border-color:#1A5A9A;background:#0A2040}
+.audit-item.verified-bank{border-color:#7A2AAA;background:#200A40}
+.audit-check{width:36px;height:36px;border-radius:50%;border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:all .2s}
+.audit-check svg{width:16px;height:16px;stroke:var(--text3);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;transition:all .2s}
+.audit-item.verified-local .audit-check{background:#1A4A8A;border-color:#60A8E0}
+.audit-item.verified-local .audit-check svg{stroke:#fff}
+.audit-item.verified-bank .audit-check{background:#6A1A9A;border-color:#C060E0}
+.audit-item.verified-bank .audit-check svg{stroke:#fff}
+.audit-item.verified-local .audit-item-name,.audit-item.verified-bank .audit-item-name{color:var(--text2)}
+.audit-item-info{flex:1;min-width:0}
+.audit-item-name{font-size:13px;font-weight:500;color:var(--text)}
+.audit-item-meta{font-size:11px;color:var(--text3);margin-top:2px}
+.audit-item-right{text-align:right;flex-shrink:0}
+.audit-item-weight{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--text)}
+.audit-filter-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.audit-filter-tabs::-webkit-scrollbar{display:none}
+.audit-filter-tab{padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid var(--border);color:var(--text3);cursor:pointer;white-space:nowrap;transition:all .15s;flex-shrink:0}
+.audit-filter-tab.active{background:var(--gold);border-color:var(--gold);color:#1A1208}
+.audit-session-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:12px 14px}
+.audit-session-date{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px}
+.audit-session-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.audit-session-stat{text-align:center}
+.audit-session-val{font-family:var(--mono);font-size:16px;font-weight:500;color:var(--text)}
+.audit-session-lbl{font-size:10px;color:var(--text3)}
+
+.due-tabs{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.due-tab{flex:1;padding:8px 0;font-size:12px;font-weight:500;text-align:center;color:var(--text3);cursor:pointer;transition:all .15s;border-right:1px solid var(--border)}
+.due-tab:last-child{border-right:none}
+.due-tab.active{background:var(--gold);color:#1A1208}
+
+#modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;display:none;align-items:flex-end;justify-content:center;max-width:480px;margin:0 auto}
+#modal-overlay.open{display:flex}
+#modal-box{background:var(--surface);border-radius:20px 20px 0 0;border-top:1px solid var(--border);width:100%;max-height:90vh;overflow-y:auto;padding:20px 20px 32px}
+.modal-handle{width:40px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 18px}
+.modal-title{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px}
+.modal-actions{display:flex;gap:10px;margin-top:18px}
+
+#toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--card2);border:1px solid var(--border2);border-radius:var(--r);padding:10px 18px;font-size:13px;color:var(--text);z-index:200;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center}
+#toast.show{opacity:1}
+#toast.success{border-color:var(--gold-dim);color:var(--gold-light)}
+#toast.error{border-color:var(--red);color:var(--red)}
+
+.empty{text-align:center;padding:48px 20px;color:var(--text3)}
+.empty svg{width:44px;height:44px;stroke:var(--text3);fill:none;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round;margin:0 auto 14px;display:block;opacity:.5}
+.empty p{font-size:14px;line-height:1.6}
+
+#detail-overlay{position:fixed;inset:0;background:var(--bg);z-index:50;display:none;flex-direction:column;max-width:480px;margin:0 auto}
+#detail-overlay.open{display:flex}
+#detail-topbar{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+#detail-back{background:none;border:none;color:var(--text2);cursor:pointer;padding:4px;display:flex;align-items:center;gap:5px;font-size:14px;font-family:var(--font)}
+#detail-back svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#detail-body{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:14px}
+.detail-amount{text-align:center;padding:24px 0 16px}
+.detail-amount-val{font-family:var(--mono);font-size:38px;font-weight:500;color:var(--gold)}
+.detail-amount-label{font-size:12px;color:var(--text3);margin-top:4px}
+.detail-img{width:100%;border-radius:var(--r2);border:1px solid var(--border);object-fit:cover;max-height:200px}
+.detail-img-placeholder{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);height:120px;display:flex;align-items:center;justify-content:center}
+.detail-img-placeholder svg{width:32px;height:32px;stroke:var(--text3);fill:none;stroke-width:1.3;opacity:.4}
+.clear-form{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+.clear-form h3{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:2px}
+
+/* ALL BILLS */
+.bills-filter-btn{flex-shrink:0;padding:5px 12px;font-size:11px;font-weight:500;border-radius:20px;border:1px solid var(--border);color:var(--text3);cursor:pointer;transition:all .15s;white-space:nowrap;background:var(--surface)}
+.bills-filter-btn.active{background:var(--gold);border-color:var(--gold);color:#1A1208}
+.bill-row{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:12px 14px;margin-bottom:8px}
+.bill-row-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
+.bill-row-id{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.bill-row-name{font-size:14px;font-weight:500;color:var(--text);margin-top:2px}
+.bill-row-meta{display:flex;gap:12px;margin-bottom:10px}
+.bill-row-meta-item{font-size:11px;color:var(--text3)}
+.bill-row-meta-item span{color:var(--text2);font-weight:500}
+.bill-row-meta-item.money span{color:var(--gold);font-family:var(--mono)}
+.bill-row-actions{display:flex;gap:7px}
+
+/* REPORTS SCREEN */
+.rpt-tabs{display:flex;gap:0;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border);margin:0 -16px;padding:0 16px}
+.rpt-tabs::-webkit-scrollbar{display:none}
+.rpt-tab{flex-shrink:0;padding:9px 14px;font-size:12px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s}
+.rpt-tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+.rpt-section{display:flex;flex-direction:column;gap:14px;padding-top:2px}
+.rpt-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:14px 16px}
+.rpt-card-title{font-size:12px;font-weight:600;color:var(--text2);letter-spacing:0.04em;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.rpt-kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px}
+.rpt-kpi{background:var(--surface);border-radius:var(--r);padding:10px 8px;text-align:center;border:1px solid var(--border)}
+.rpt-kpi-val{font-family:var(--mono);font-size:17px;font-weight:500;color:var(--gold)}
+.rpt-kpi-lbl{font-size:10px;color:var(--text3);margin-top:3px;line-height:1.3}
+.rpt-kpi-delta{font-size:10px;margin-top:2px;font-family:var(--mono)}
+.rpt-kpi-delta.up{color:var(--green)}.rpt-kpi-delta.down{color:var(--red)}.rpt-kpi-delta.flat{color:var(--text3)}
+/* Bar chart */
+.bar-chart{display:flex;flex-direction:column;gap:4px}
+.bar-row{display:flex;align-items:center;gap:8px}
+.bar-label{font-size:10px;color:var(--text3);width:28px;text-align:right;flex-shrink:0;font-family:var(--mono)}
+.bar-track{flex:1;height:18px;background:var(--surface);border-radius:4px;overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:4px;transition:width .5s ease;display:flex;align-items:center;justify-content:flex-end;padding-right:5px}
+.bar-fill.gold{background:linear-gradient(90deg,var(--gold-dim),var(--gold))}
+.bar-fill.blue{background:linear-gradient(90deg,#1A3A6A,#4090D0)}
+.bar-fill.green{background:linear-gradient(90deg,#0A3020,#30A060)}
+.bar-val{font-size:9px;font-family:var(--mono);color:#fff;white-space:nowrap;font-weight:500}
+/* Donut chart */
+.donut-wrap{display:flex;align-items:center;gap:16px}
+.donut-svg{flex-shrink:0}
+.donut-legend{display:flex;flex-direction:column;gap:7px;flex:1}
+.donut-leg-item{display:flex;align-items:center;gap:7px}
+.donut-leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.donut-leg-label{font-size:11px;color:var(--text2);flex:1}
+.donut-leg-val{font-family:var(--mono);font-size:11px;color:var(--text);font-weight:500}
+/* Line chart */
+.line-chart-wrap{position:relative;height:110px;margin:4px 0}
+.line-chart-wrap svg{width:100%;height:100%}
+/* Table */
+.rpt-table{width:100%;border-collapse:collapse}
+.rpt-table th{font-size:10px;font-weight:600;color:var(--text3);text-align:left;padding:0 0 8px;letter-spacing:0.05em;text-transform:uppercase;border-bottom:1px solid var(--border)}
+.rpt-table td{font-size:12px;color:var(--text);padding:9px 0;border-bottom:1px solid var(--border);vertical-align:middle}
+.rpt-table tr:last-child td{border-bottom:none}
+.rpt-table td.mono{font-family:var(--mono);color:var(--gold)}
+.rpt-table td.muted{color:var(--text3)}
+.rpt-rank{font-family:var(--mono);font-size:11px;color:var(--text3);width:18px}
+.rpt-tag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;background:var(--surface);border:1px solid var(--border);color:var(--text3)}
+.rpt-tag.red{background:#1A0000;border-color:#5A1010;color:var(--red)}
+.rpt-tag.amber{background:#1C1000;border-color:#5A2A00;color:var(--amber)}
+.rpt-tag.green{background:#081A0F;border-color:#1A5030;color:var(--green)}
+.rpt-divider{height:1px;background:var(--border);margin:10px 0}
+.rpt-month-selector{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.rpt-month-nav{background:none;border:1px solid var(--border);border-radius:var(--r);padding:5px 10px;color:var(--text2);cursor:pointer;font-size:13px;font-family:var(--font)}
+.rpt-month-nav:active{opacity:.6}
+.rpt-month-label{font-size:13px;font-weight:500;color:var(--text);font-family:var(--mono)}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+@supports(padding:max(0px)){#nav{padding-bottom:max(0px,env(safe-area-inset-bottom))}}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading-screen">
+  <div class="loading-logo-mark">
+    <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Trishul: central prong -->
+      <rect x="15" y="10" width="2" height="16" rx="1" fill="#1A1208"/>
+      <!-- Trishul: left prong -->
+      <path d="M10 8 Q10 5 12 5 Q14 5 14 8 L13 10 L11 10 Z" fill="#1A1208"/>
+      <!-- Trishul: right prong -->
+      <path d="M22 8 Q22 5 20 5 Q18 5 18 8 L19 10 L21 10 Z" fill="#1A1208"/>
+      <!-- Trishul: crossbar -->
+      <rect x="9" y="11" width="14" height="2" rx="1" fill="#1A1208"/>
+      <!-- Trishul: base handle -->
+      <path d="M14 26 Q14 28 16 28 Q18 28 18 26 L17 24 L15 24 Z" fill="#1A1208"/>
+      <!-- Decorative side flourishes on central prong -->
+      <path d="M15 15 Q12 14 12 12" stroke="#1A1208" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+      <path d="M17 15 Q20 14 20 12" stroke="#1A1208" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+    </svg>
+  </div>
+  <div class="loading-name">Mahadev Pawn</div>
+  <div class="loading-sub">Gold Lending Suite</div>
+  <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+</div>
+
+<div id="app" style="display:none">
+  <div id="sync-banner">
+    <div class="sync-dot"></div>
+    You are offline — changes will sync when connection returns
+  </div>
+  <div id="topbar">
+    <div class="logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Trishul central prong -->
+          <rect x="14" y="9" width="2" height="14" rx="1" fill="#1A1208"/>
+          <!-- Left prong -->
+          <path d="M9 7.5 Q9 5 11 5 Q13 5 13 7.5 L12 9 L10 9 Z" fill="#1A1208"/>
+          <!-- Right prong -->
+          <path d="M21 7.5 Q21 5 19 5 Q17 5 17 7.5 L18 9 L20 9 Z" fill="#1A1208"/>
+          <!-- Crossbar -->
+          <rect x="8" y="10" width="14" height="1.8" rx="0.9" fill="#1A1208"/>
+          <!-- Base -->
+          <path d="M13.5 23 Q13.5 25 15 25 Q16.5 25 16.5 23 L16 21.5 L14 21.5 Z" fill="#1A1208"/>
+          <!-- Side curves -->
+          <path d="M14 14 Q11.5 13 11.5 11" stroke="#1A1208" stroke-width="1.1" stroke-linecap="round" fill="none"/>
+          <path d="M16 14 Q18.5 13 18.5 11" stroke="#1A1208" stroke-width="1.1" stroke-linecap="round" fill="none"/>
+        </svg>
+      </div>
+      <div>
+        <div class="logo-name">Mahadev Pawn</div>
+        <div class="logo-sub">Gold Lending Suite</div>
+      </div>
+    </div>
+    <div id="topbar-right">
+      <div id="lang-toggle" onclick="toggleLang()" style="cursor:pointer;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:500;color:var(--text2);display:flex;align-items:center;gap:4px">
+        <span id="lang-en" style="color:var(--gold)">EN</span>
+        <span style="color:var(--border2)">|</span>
+        <span id="lang-hi" style="color:var(--text3)">हि</span>
+      </div>
+      <div id="sync-icon" title="Synced">
+        <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+      </div>
+      <div id="topbar-date"></div>
+    </div>
+  </div>
+  <div class="gold-rule"></div>
+
+  <div id="screens">
+    <!-- DASHBOARD -->
+    <div id="screen-dashboard" class="screen active">
+      <div class="screen-body">
+        <div class="sec-label">Portfolio overview</div>
+        <div class="stat-row">
+          <div class="stat"><div class="stat-label">Active loans</div><div class="stat-val" id="stat-active">—</div><div class="stat-sub">records</div></div>
+          <div class="stat"><div class="stat-label">Disbursed</div><div class="stat-val" id="stat-disbursed">—</div><div class="stat-sub">outstanding</div></div>
+          <div class="stat"><div class="stat-label">Gold held</div><div class="stat-val" id="stat-gold">—</div><div class="stat-sub">gold only</div></div>
+          <div class="stat"><div class="stat-label">Silver held</div><div class="stat-val" id="stat-silver" style="color:#A0A0C0">—</div><div class="stat-sub">silver only</div></div>
+        </div>
+        <div class="sec-label">Action needed</div>
+        <div class="alert-row">
+          <div class="alert due" onclick="goDue('week')">
+            <div class="alert-left"><div class="alert-dot yellow"></div><div><div class="alert-name">Due this week</div><div class="alert-meta">Interest due within 7 days</div></div></div>
+            <div class="alert-count yellow" id="count-week">0</div>
+          </div>
+          <div class="alert overdue" onclick="goDue('overdue')">
+            <div class="alert-left"><div class="alert-dot amber"></div><div><div class="alert-name">Overdue</div><div class="alert-meta">Past 30 days, no closure</div></div></div>
+            <div class="alert-count amber" id="count-overdue">0</div>
+          </div>
+          <div class="alert critical" onclick="goDue('critical')">
+            <div class="alert-left"><div class="alert-dot red"></div><div><div class="alert-name">Critical</div><div class="alert-meta">Approaching 11-month limit</div></div></div>
+            <div class="alert-count red" id="count-critical">0</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div class="sec-label">Recent loans</div>
+          <div onclick="openAllBills()" style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:500;color:var(--gold);cursor:pointer;padding:4px 10px;border:1px solid var(--gold-dim);border-radius:20px;background:var(--amber-bg,#1A1000)">
+            <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            View all bills
+          </div>
+        </div>
+        <div id="dash-recent"><div class="empty"><p>Loading…</p></div></div>
+      </div>
+    </div>
+
+    <!-- NEW LOAN -->
+    <div id="screen-newloan" class="screen">
+      <div class="screen-body">
+        <div class="sec-label">New transaction</div>
+        <div class="form-section">
+          <div class="input-group">
+            <label class="lbl">Manual receipt ID *</label>
+            <input type="text" id="f-id" placeholder="e.g. 1200" autocomplete="off" autocorrect="off" spellcheck="false" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+            <div class="error-msg" id="err-id"></div>
+          </div>
+          <div class="input-row">
+            <div class="input-group">
+              <label class="lbl">Date of receipt *</label>
+              <input type="date" id="f-date">
+            </div>
+            <div class="input-group">
+              <label class="lbl">Phone number *</label>
+              <input type="tel" id="f-phone" placeholder="10-digit" maxlength="10" inputmode="numeric">
+              <div class="error-msg" id="err-phone"></div>
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="lbl">Customer name *</label>
+            <input type="text" id="f-name" placeholder="Full name" autocorrect="off">
+            <div class="error-msg" id="err-name"></div>
+          </div>
+          <div class="input-group">
+            <label class="lbl">Items (photo + description)</label>
+            <div class="photo-slot" onclick="document.getElementById('photo-input').click()">
+              <div class="photo-icon" id="photo-icon-wrap">
+                <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              </div>
+              <div class="photo-text"><strong>Photograph items</strong><span>Auto-compressed · Max 200 KB · Synced securely</span></div>
+            </div>
+            <input type="file" id="photo-input" accept="image/*" capture="environment">
+            <textarea id="f-items" placeholder="e.g. 1 Gold Chain, 2 Bangles, 1 Ring"></textarea>
+          </div>
+          <div class="input-row">
+            <div class="input-group">
+              <label class="lbl">Gold weight (g) *</label>
+              <input type="number" id="f-weight" placeholder="0.00" step="0.01" min="0.01" inputmode="decimal">
+              <div class="error-msg" id="err-weight"></div>
+            </div>
+            <div class="input-group">
+              <label class="lbl">Metal type</label>
+              <select id="f-metal">
+                <option value="gold">Gold</option>
+                <option value="silver">Silver</option>
+                <option value="mixed">Mixed</option>
+              </select>
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="lbl">Disbursed amount (₹) *</label>
+            <input type="number" id="f-amount" placeholder="0" step="1" min="1" inputmode="numeric">
+            <div class="error-msg" id="err-amount"></div>
+          </div>
+          <div class="input-group">
+            <label class="lbl">Vault location *</label>
+            <div class="vault-toggle">
+              <div class="vault-opt local active" id="vault-opt-local" onclick="selectVault('local')">
+                <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                Local Vault
+              </div>
+              <div class="vault-opt bank" id="vault-opt-bank" onclick="selectVault('bank')">
+                <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                Bank Vault
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="submit-btn" id="submit-btn" onclick="submitLoan()">
+          <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          Submit &amp; Disburse
+        </button>
+      </div>
+    </div>
+
+    <!-- DUE -->
+    <div id="screen-due" class="screen">
+      <div class="screen-body">
+        <div class="due-tabs">
+          <div class="due-tab active" id="dtab-week" onclick="switchDueTab('week')">Due this week</div>
+          <div class="due-tab" id="dtab-overdue" onclick="switchDueTab('overdue')">Overdue</div>
+          <div class="due-tab" id="dtab-critical" onclick="switchDueTab('critical')">Critical</div>
+        </div>
+        <div id="due-list"></div>
+      </div>
+    </div>
+
+    <!-- AUDIT -->
+    <div id="screen-audit" class="screen">
+      <div class="screen-body">
+        <!-- Summary cards -->
+        <div class="sec-label">Vault summary</div>
+        <div class="audit-summary">
+          <div class="audit-vault-card local">
+            <div class="audit-vault-title">
+              <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+              <span data-en="Local Vault" data-hi="स्थानीय तिजोरी">Local Vault</span>
+            </div>
+            <div class="audit-vault-stat" id="audit-local-count">—</div>
+            <div class="audit-vault-sub" id="audit-local-weight">— g gold</div>
+            <div class="audit-vault-sub" id="audit-local-silver" style="color:#A0A0C0">— g silver</div>
+            <div class="audit-vault-sub" id="audit-local-value" style="color:var(--gold);font-family:var(--mono);font-size:12px;margin-top:3px">₹—</div>
+          </div>
+          <div class="audit-vault-card bank">
+            <div class="audit-vault-title">
+              <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+              <span data-en="Bank Vault" data-hi="बैंक तिजोरी">Bank Vault</span>
+            </div>
+            <div class="audit-vault-stat" id="audit-bank-count">—</div>
+            <div class="audit-vault-sub" id="audit-bank-weight">— g gold</div>
+            <div class="audit-vault-sub" id="audit-bank-silver" style="color:#A0A0C0">— g silver</div>
+            <div class="audit-vault-sub" id="audit-bank-value" style="color:var(--gold);font-family:var(--mono);font-size:12px;margin-top:3px">₹—</div>
+          </div>
+        </div>
+
+        <!-- Audit progress -->
+        <div class="audit-progress" id="audit-progress-wrap" style="display:none">
+          <div class="audit-progress-header">
+            <div class="audit-progress-title" id="audit-progress-label">Audit in progress</div>
+            <div class="audit-progress-pct" id="audit-progress-pct">0%</div>
+          </div>
+          <div class="audit-bar-wrap"><div class="audit-bar-fill" id="audit-bar" style="width:0%"></div></div>
+        </div>
+
+        <!-- Start / End audit buttons -->
+        <div style="display:flex;gap:8px" id="audit-action-row">
+          <button class="submit-btn" id="audit-start-btn" onclick="startAudit()" style="flex:1">
+            <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:#1A1208;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            Start Audit
+          </button>
+          <button class="btn danger" id="audit-end-btn" onclick="endAudit()" style="flex:1;display:none;padding:14px 0;font-size:14px">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            End Audit
+          </button>
+        </div>
+
+        <!-- Filter tabs -->
+        <div class="audit-filter-tabs" id="audit-filter-tabs" style="display:none">
+          <div class="audit-filter-tab active" id="aft-all"      onclick="setAuditFilter('all')">All</div>
+          <div class="audit-filter-tab"        id="aft-unveri"   onclick="setAuditFilter('unverified')">Unverified</div>
+          <div class="audit-filter-tab"        id="aft-verified" onclick="setAuditFilter('verified')">Verified</div>
+          <div class="audit-filter-tab"        id="aft-local"    onclick="setAuditFilter('local')">Local</div>
+          <div class="audit-filter-tab"        id="aft-bank"     onclick="setAuditFilter('bank')">Bank</div>
+        </div>
+
+        <!-- Audit item list -->
+        <div id="audit-list" style="min-height:0"></div>
+
+        <!-- Past audit history -->
+        <div class="sec-label" id="audit-history-label">Past audits</div>
+        <div id="audit-history"></div>
+      </div>
+    </div>
+
+    <!-- REPORTS -->
+    <div id="screen-reports" class="screen">
+      <div class="screen-body">
+        <div class="rpt-tabs">
+          <div class="rpt-tab active" onclick="switchRptTab('monthly')" id="rtab-monthly">Monthly</div>
+          <div class="rpt-tab" onclick="switchRptTab('customers')" id="rtab-customers">Customers</div>
+          <div class="rpt-tab" onclick="switchRptTab('health')" id="rtab-health">Portfolio Health</div>
+        </div>
+        <div id="rpt-body"></div>
+      </div>
+    </div>
+
+    <!-- SEARCH -->
+    <div id="screen-search" class="screen">
+      <div class="screen-body">
+        <div class="search-wrap">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="search" id="search-input" placeholder="Search by name, phone or bill ID…" oninput="doSearch()" autocorrect="off" autocomplete="off">
+        </div>
+        <div id="search-results"></div>
+      </div>
+    </div>
+
+    <!-- BANK PLEDGE TRACKER -->
+    <div id="screen-bank" class="screen">
+      <div class="screen-body">
+        <!-- Summary -->
+        <div class="stat-row" style="grid-template-columns:repeat(3,1fr)">
+          <div class="stat"><div class="stat-label">Bank pledges</div><div class="stat-val" id="bk-count" style="color:#4090D0">—</div><div class="stat-sub">active</div></div>
+          <div class="stat"><div class="stat-label">Bank total</div><div class="stat-val" id="bk-total" style="color:#4090D0">—</div><div class="stat-sub">borrowed</div></div>
+          <div class="stat"><div class="stat-label">Margin</div><div class="stat-val" id="bk-margin" style="color:var(--green)">—</div><div class="stat-sub">spread</div></div>
+        </div>
+
+        <!-- Add new pledge -->
+        <div class="sec-label">New bank pledge</div>
+        <div class="card" style="border-color:#1A3A6A">
+          <div class="form-section">
+            <div class="input-row">
+              <div class="input-group">
+                <label class="lbl">Pawn bill ID</label>
+                <input type="text" id="bk-pawn-id" placeholder="e.g. 6155" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'');previewPawnBill()" autocomplete="off">
+                <div class="error-msg" id="bk-err-pawn"></div>
+              </div>
+              <div class="input-group">
+                <label class="lbl">Bank loan bill ID</label>
+                <input type="text" id="bk-bank-id" placeholder="Bank ref no." autocomplete="off" autocorrect="off">
+                <div class="error-msg" id="bk-err-bankid"></div>
+              </div>
+            </div>
+            <div class="input-row">
+              <div class="input-group">
+                <label class="lbl">Date</label>
+                <input type="date" id="bk-date">
+              </div>
+              <div class="input-group">
+                <label class="lbl">Bank loan amount (₹)</label>
+                <input type="number" id="bk-amount" placeholder="0" inputmode="numeric" min="1">
+                <div class="error-msg" id="bk-err-amount"></div>
+              </div>
+            </div>
+            <!-- Linked pawn loan preview -->
+            <div id="bk-pawn-preview" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px">
+              <div style="font-size:10px;color:var(--text3);margin-bottom:4px">Linked pawn loan</div>
+              <div id="bk-pawn-preview-content"></div>
+            </div>
+          </div>
+          <button class="submit-btn" style="margin-top:14px;background:#1A3A8A" onclick="addBankPledge()">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+            Add Bank Pledge
+          </button>
+        </div>
+
+        <!-- Pledges list -->
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div class="sec-label">Active pledges</div>
+          <div id="bk-list-count" style="font-size:11px;color:var(--text3);font-family:var(--mono)"></div>
+        </div>
+        <div class="search-wrap">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="search" id="bk-search" placeholder="Search bank ID, pawn bill…" oninput="renderBankList()" autocomplete="off">
+        </div>
+        <div id="bk-list"></div>
+      </div>
+    </div>
+
+  </div><!-- end #screens -->
+
+  <div id="nav" style="font-size:9.5px">
+    <div class="nav-item active" onclick="switchScreen('dashboard')" id="nav-dashboard">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Home
+    </div>
+    <div class="nav-item" onclick="switchScreen('newloan')" id="nav-newloan">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      New Loan
+    </div>
+    <div class="nav-item" onclick="switchScreen('due')" id="nav-due">
+      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+      <span id="due-badge-nav" class="nav-badge" style="display:none">0</span>
+      Due
+    </div>
+    <div class="nav-item" onclick="switchScreen('bank')" id="nav-bank">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      Bank
+    </div>
+    <div class="nav-item" onclick="switchScreen('audit')" id="nav-audit">
+      <svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+      Audit
+    </div>
+    <div class="nav-item" onclick="switchScreen('reports')" id="nav-reports">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Reports
+    </div>
+    <div class="nav-item" onclick="switchScreen('search')" id="nav-search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Search
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL OVERLAY -->
+<div id="detail-overlay">
+  <div id="detail-topbar">
+    <button id="detail-back" onclick="closeDetail()">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>Back
+    </button>
+    <span id="detail-topbar-title" style="font-size:14px;font-weight:500;color:var(--text2);flex:1"></span>
+    <button id="detail-edit-btn" onclick="openEditModal()" style="background:none;border:1px solid var(--border);border-radius:var(--r);padding:5px 11px;color:var(--gold);font-size:12px;font-weight:500;font-family:var(--font);cursor:pointer;display:flex;align-items:center;gap:5px">
+      <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Edit
+    </button>
+  </div>
+  <div class="gold-rule"></div>
+  <div id="detail-body"></div>
+</div>
+
+<!-- ALL BILLS OVERLAY -->
+<div id="bills-overlay" style="position:fixed;inset:0;background:var(--bg);z-index:50;display:none;flex-direction:column;max-width:480px;margin:0 auto">
+  <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0">
+    <button onclick="closeAllBills()" style="background:none;border:none;color:var(--text2);cursor:pointer;padding:4px;display:flex;align-items:center;gap:5px;font-size:14px;font-family:var(--font)">
+      <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><polyline points="15 18 9 12 15 6"/></svg>Back
+    </button>
+    <div style="flex:1;font-size:14px;font-weight:500;color:var(--text)">All Bills <span id="bills-count" style="font-family:var(--mono);font-size:12px;color:var(--text3)"></span></div>
+  </div>
+  <div class="gold-rule"></div>
+  <!-- search + filters -->
+  <div style="padding:10px 16px 0;flex-shrink:0;display:flex;flex-direction:column;gap:8px">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" id="bills-search" placeholder="Search bill ID, name, phone…" oninput="renderBillsList()" autocorrect="off" autocomplete="off">
+    </div>
+    <div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px" id="bills-filter-row">
+      <div class="bills-filter-btn active" onclick="setBillsFilter('all')" id="bf-all">All</div>
+      <div class="bills-filter-btn" onclick="setBillsFilter('active')" id="bf-active">Active</div>
+      <div class="bills-filter-btn" onclick="setBillsFilter('overdue')" id="bf-overdue">Overdue</div>
+      <div class="bills-filter-btn" onclick="setBillsFilter('critical')" id="bf-critical">Critical</div>
+      <div class="bills-filter-btn" onclick="setBillsFilter('released')" id="bf-released">Released</div>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Sort:</span>
+      <select id="bills-sort" onchange="renderBillsList()" style="flex:1;font-size:12px;padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text)">
+        <option value="date-desc">Newest first</option>
+        <option value="date-asc">Oldest first</option>
+        <option value="billid-asc">Bill ID low → high</option>
+        <option value="billid-desc">Bill ID high → low</option>
+        <option value="amount-desc">Amount ↑</option>
+        <option value="amount-asc">Amount ↓</option>
+        <option value="name-asc">Name A–Z</option>
+        <option value="days-desc">Most overdue</option>
+      </select>
+    </div>
+  </div>
+  <div id="bills-list" style="flex:1;overflow-y:auto;padding:10px 16px 20px"></div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay" onclick="closeModal(event)">
+  <div id="modal-box">
+    <div class="modal-handle"></div>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query, enableIndexedDbPersistence, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAgaKBvkYjMPjQOO-aK_1b_mH5PES_C-r4",
+  authDomain: "auragold-88899.firebaseapp.com",
+  projectId: "auragold-88899",
+  storageBucket: "auragold-88899.firebasestorage.app",
+  messagingSenderId: "972772625472",
+  appId: "1:972772625472:web:bfa70c48df007e649523a5",
+  measurementId: "G-SRVTSG2RB4"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+
+// Enable offline persistence
+try {
+  await enableIndexedDbPersistence(db);
+} catch(e) {
+  console.warn('Offline persistence:', e.code);
+}
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+let allLoans = [];
+let currentDueTab = 'week';
+let capturedPhoto = null;
+let currentDetailId = null;
+
+// ── HELPERS ────────────────────────────────────────────────────────────────
+function today() { return new Date().toISOString().split('T')[0]; }
+
+function fmtDate(d) {
+  if (!d) return '—';
+  const dt = new Date(d + 'T00:00:00');
+  return dt.toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
+}
+
+function fmtMoney(n) {
+  const num = Number(n) || 0;
+  if (num >= 100000) return '₹' + (num/100000).toFixed(1) + 'L';
+  if (num >= 1000) return '₹' + (num/1000).toFixed(1) + 'K';
+  return '₹' + num.toLocaleString('en-IN');
+}
+
+function fmtMoneyFull(n) { return '₹' + (Number(n)||0).toLocaleString('en-IN'); }
+
+function daysSince(dateStr) {
+  return Math.floor((Date.now() - new Date(dateStr + 'T00:00:00').getTime()) / 86400000);
+}
+
+function loanStatus(loan) {
+  if (loan.status === 'RELEASED') return 'released';
+  const d = daysSince(loan.date);
+  if (d >= 330) return 'critical';
+  if (d >= 30)  return 'overdue';
+  if (d <= 7)   return 'due';
+  return 'active';
+}
+
+function initials(name) {
+  return (name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'show' + (type?' '+type:'');
+  clearTimeout(el._t); el._t = setTimeout(()=>el.className='', 2800);
+}
+
+function showModal(html) {
+  document.getElementById('modal-content').innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+window.closeModal = function(e) {
+  if (!e || e.target === document.getElementById('modal-overlay'))
+    document.getElementById('modal-overlay').classList.remove('open');
+}
+
+function smsText(loan) {
+  return `Dear ${loan.name}, this is a friendly notification regarding your active Gold Loan Bill No: ${loan.receiptId}. The interest/principal payment for your loan issued on ${fmtDate(loan.date)} is due. Kindly visit our branch to clear your balances. - Mahadev Pawn`;
+}
+
+function emptyState(msg) {
+  return `<div class="empty"><svg viewBox="0 0 24 24"><path d="M6 3l-4 7 10 11L22 10 18 3H6z"/><path d="M6 3l3 7h6l3-7"/><path d="M2 10h20"/></svg><p>${msg}</p></div>`;
+}
+
+// ── SYNC STATUS UI ─────────────────────────────────────────────────────────
+function setSyncStatus(status) {
+  const icon = document.getElementById('sync-icon');
+  const banner = document.getElementById('sync-banner');
+  icon.className = status;
+  if (status === 'offline') banner.classList.add('show');
+  else banner.classList.remove('show');
+}
+
+window.addEventListener('online',  () => setSyncStatus('syncing'));
+window.addEventListener('offline', () => setSyncStatus('offline'));
+
+// ── REAL-TIME LISTENER ─────────────────────────────────────────────────────
+const loansCol = collection(db, 'loans');
+const q = query(loansCol);
+
+onSnapshot(q, (snapshot) => {
+  setSyncStatus('synced');
+  allLoans = snapshot.docs.map(d => ({ firestoreId: d.id, ...d.data() }));
+  // Sort newest first client-side (avoids Firestore dropping docs missing createdAt)
+  allLoans.sort((a, b) => {
+    const da = a.date || ''; const db2 = b.date || '';
+    return db2.localeCompare(da);
+  });
+  // Auto-purge 5yr rule
+  const cutoff = new Date();
+  cutoff.setFullYear(cutoff.getFullYear() - 5);
+  const cutoffStr = cutoff.toISOString().split('T')[0];
+  allLoans.filter(l => l.status === 'RELEASED' && l.releaseDate && l.releaseDate < cutoffStr)
+    .forEach(l => deleteDoc(doc(db, 'loans', l.firestoreId)));
+
+  refreshDashboard();
+  updateBadge();
+  const activeScreen = document.querySelector('.screen.active');
+  if (activeScreen && activeScreen.id === 'screen-due') renderDueList();
+  if (activeScreen && activeScreen.id === 'screen-search') doSearch();
+  if (activeScreen && activeScreen.id === 'screen-audit') { refreshAuditSummary(); if(auditActive) renderAuditList(); }
+  if (activeScreen && activeScreen.id === 'screen-reports') renderReports();
+  if (activeScreen && activeScreen.id === 'screen-bank') { refreshBankSummary(); renderBankList(); }
+}, (err) => {
+  console.error(err);
+  setSyncStatus('offline');
+});
+
+// ── IMAGE COMPRESSION ──────────────────────────────────────────────────────
+function compressImage(file) {
+  return new Promise(res => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let {width:w, height:h} = img;
+        const maxDim = 1200;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) { h = Math.round(h*maxDim/w); w = maxDim; }
+          else { w = Math.round(w*maxDim/h); h = maxDim; }
+        }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        let quality = 0.82;
+        let dataUrl = canvas.toDataURL('image/jpeg', quality);
+        while (dataUrl.length * 0.75 > 200000 && quality > 0.3) {
+          quality -= 0.08;
+          dataUrl = canvas.toDataURL('image/jpeg', quality);
+        }
+        res(dataUrl);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+document.getElementById('photo-input').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  toast('Compressing image…');
+  capturedPhoto = await compressImage(file);
+  document.getElementById('photo-icon-wrap').innerHTML =
+    `<img src="${capturedPhoto}" style="width:38px;height:38px;object-fit:cover;border-radius:var(--r);">`;
+  toast('Photo ready · under 200 KB', 'success');
+});
+
+// ── NAVIGATION ─────────────────────────────────────────────────────────────
+window.switchScreen = function(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  if (name === 'due') renderDueList();
+}
+
+window.goDue = function(tab) { switchScreen('due'); switchDueTab(tab); }
+
+window.switchDueTab = function(tab) {
+  currentDueTab = tab;
+  ['week','overdue','critical'].forEach(t =>
+    document.getElementById('dtab-'+t).classList.toggle('active', t===tab));
+  renderDueList();
+}
+
+// ── DASHBOARD ──────────────────────────────────────────────────────────────
+function refreshDashboard() {
+  const active = allLoans.filter(l => l.status === 'ACTIVE');
+  document.getElementById('stat-active').textContent = active.length;
+  document.getElementById('stat-disbursed').textContent = fmtMoney(active.reduce((s,l)=>s+Number(l.amount),0));
+  const goldWeight   = active.filter(l=>!l.metal||l.metal==='gold'||l.metal==='mixed').reduce((s,l)=>s+Number(l.weight),0);
+  const silverWeight = active.filter(l=>l.metal==='silver').reduce((s,l)=>s+Number(l.weight),0);
+  document.getElementById('stat-gold').textContent   = goldWeight.toFixed(1)+'g';
+  document.getElementById('stat-silver').textContent = silverWeight > 0 ? silverWeight.toFixed(1)+'g' : '0g';
+  document.getElementById('count-week').textContent = active.filter(l=>['due','active'].includes(loanStatus(l))).length;
+  document.getElementById('count-overdue').textContent = active.filter(l=>loanStatus(l)==='overdue').length;
+  document.getElementById('count-critical').textContent = active.filter(l=>loanStatus(l)==='critical').length;
+
+  const recent = allLoans.slice(0, 5);
+  const cont = document.getElementById('dash-recent');
+  cont.innerHTML = recent.length === 0 ? emptyState('No loans yet. Tap + New Loan to begin.') :
+    recent.map(l => loanCard(l, true)).join('');
+}
+
+function updateBadge() {
+  const urgent = allLoans.filter(l=>l.status==='ACTIVE'&&['overdue','critical'].includes(loanStatus(l))).length;
+  const badge = document.getElementById('due-badge-nav');
+  badge.textContent = urgent; badge.style.display = urgent > 0 ? 'block' : 'none';
+}
+
+// ── LOAN CARD ──────────────────────────────────────────────────────────────
+function loanCard(loan, showActions=false) {
+  const s = loan.status==='RELEASED'?'released':loanStatus(loan);
+  const days = daysSince(loan.date);
+  const pillText = {active:'Active',due:'Due soon',overdue:`${days}d overdue`,critical:`${days}d — critical`,released:'Released'}[s]||'Active';
+
+  const comms = `
+    <a class="btn sms" href="sms:${loan.phone}?body=${encodeURIComponent(smsText(loan))}">
+      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>SMS
+    </a>
+    <a class="btn wa" href="https://wa.me/91${loan.phone}?text=${encodeURIComponent(smsText(loan))}" target="_blank">
+      <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>WhatsApp
+    </a>`;
+
+  const actions = showActions && loan.status==='ACTIVE' ? `
+    <div class="card-actions">${comms}
+      <div class="btn primary" onclick="openDetail('${loan.firestoreId}')">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>View
+      </div>
+    </div>` : `
+    <div class="card-actions">
+      <div class="btn ghost" onclick="openDetail('${loan.firestoreId}')">View details</div>
+    </div>`;
+
+  return `
+  <div class="card${s==='critical'?' critical-border':''}" style="margin-bottom:10px">
+    <div class="card-header">
+      <div><div class="bill-id">${esc(loan.receiptId)}</div><div class="cust-name">${esc(loan.name)}</div></div>
+      <div class="pill ${s}">${pillText}</div>
+    </div>
+    <div class="divider"></div>
+    <div class="field-grid">
+      <div><div class="field-k">Date</div><div class="field-v">${fmtDate(loan.date)}</div></div>
+      <div><div class="field-k">Gold weight</div><div class="field-v">${Number(loan.weight).toFixed(2)} g</div></div>
+      <div><div class="field-k">Items</div><div class="field-v">${esc((loan.items||'—').substring(0,28))}</div></div>
+      <div><div class="field-k">Disbursed</div><div class="field-v money">${fmtMoneyFull(loan.amount)}</div></div>
+      ${loan.vault&&loan.status==='ACTIVE'?`<div style="grid-column:span 2"><span class="vault-badge ${loan.vault}">${loan.vault==='local'?'🔒 Local Vault':'🏦 Bank Vault'}</span></div>`:''}
+    </div>
+    ${actions}
+  </div>`;
+}
+
+// ── DUE LIST ───────────────────────────────────────────────────────────────
+function renderDueList() {
+  const active = allLoans.filter(l=>l.status==='ACTIVE');
+  const list = active.filter(l => {
+    const s = loanStatus(l);
+    if (currentDueTab==='week') return s==='due'||s==='active';
+    if (currentDueTab==='overdue') return s==='overdue';
+    return s==='critical';
+  });
+  const cont = document.getElementById('due-list');
+  if (!list.length) { cont.innerHTML = emptyState('No loans in this category.'); return; }
+  cont.innerHTML = list.map(l => {
+    const s = loanStatus(l); const days = daysSince(l.date);
+    return `
+    <div class="card${s==='critical'?' critical-border':''}" style="margin-bottom:10px">
+      <div class="card-header">
+        <div><div class="bill-id">${esc(l.receiptId)}</div><div class="cust-name">${esc(l.name)}</div></div>
+        <div class="pill ${s}">${days}d</div>
+      </div>
+      <div class="divider"></div>
+      <div class="field-grid">
+        <div><div class="field-k">Issued</div><div class="field-v">${fmtDate(l.date)}</div></div>
+        <div><div class="field-k">Principal</div><div class="field-v money">${fmtMoneyFull(l.amount)}</div></div>
+        <div><div class="field-k">Phone</div><div class="field-v">${esc(l.phone)}</div></div>
+        <div><div class="field-k">Gold weight</div><div class="field-v">${Number(l.weight).toFixed(2)} g</div></div>
+      </div>
+      <div class="card-actions">
+        <a class="btn sms" href="sms:${l.phone}?body=${encodeURIComponent(smsText(l))}">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>SMS
+        </a>
+        <a class="btn wa" href="https://wa.me/91${l.phone}?text=${encodeURIComponent(smsText(l))}" target="_blank">
+          <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>WhatsApp
+        </a>
+        <div class="btn primary" onclick="openDetail('${l.firestoreId}')">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>View
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── SEARCH ─────────────────────────────────────────────────────────────────
+window.doSearch = function() {
+  const q = document.getElementById('search-input').value.trim().toLowerCase();
+  const cont = document.getElementById('search-results');
+  if (!q) { cont.innerHTML = ''; return; }
+  const matched = allLoans.filter(l => l.name.toLowerCase().includes(q) || l.phone.includes(q) || String(l.receiptId).includes(q));
+  if (!matched.length) { cont.innerHTML = emptyState(`No records found for "${esc(q)}".`); return; }
+  const byPhone = {};
+  matched.forEach(l => {
+    const phone = (l.phone||'').trim();
+    if (!phone) return;
+    if (!byPhone[phone]) byPhone[phone] = {name:l.name, phone, loans:[]};
+    byPhone[phone].loans.push(l);
+  });
+  cont.innerHTML = Object.values(byPhone).map(cust => {
+    const activeL = cust.loans.filter(l=>l.status==='ACTIVE');
+    const exposure = activeL.reduce((s,l)=>s+(Number(l.amount)||0),0);
+    const rows = cust.loans.map(l=>`
+      <div class="tl-item" onclick="openDetail('${l.firestoreId}')">
+        <div><div class="tl-bill">${esc(l.receiptId)}</div><div class="tl-date">${fmtDate(l.date)} · ${Number(l.weight).toFixed(1)}g</div></div>
+        <div><div class="tl-amt">${fmtMoneyFull(l.amount)}</div><div class="tl-pill ${l.status==='RELEASED'?'released':'active'}">${l.status==='RELEASED'?'Released':'Active'}</div></div>
+      </div>`).join('');
+    return `<div class="cust-card">
+      <div class="cust-header">
+        <div class="avatar">${initials(cust.name)}</div>
+        <div><div class="cust-info-name">${esc(cust.name)}</div>
+        <div class="cust-info-total">Active exposure: <span>${fmtMoneyFull(exposure)}</span> · ${activeL.length} active</div></div>
+      </div>${rows}</div>`;
+  }).join('<div style="height:10px"></div>');
+}
+
+// ── DETAIL VIEW ────────────────────────────────────────────────────────────
+window.openDetail = function(firestoreId) {
+  const loan = allLoans.find(l => l.firestoreId === firestoreId);
+  if (!loan) return;
+  currentDetailId = firestoreId;
+  document.getElementById('detail-topbar-title').textContent = loan.receiptId;
+  const s = loan.status==='RELEASED'?'released':loanStatus(loan);
+  const days = daysSince(loan.date);
+
+  const imgHtml = loan.photo
+    ? `<img class="detail-img" src="${loan.photo}" alt="Pledged items" loading="lazy">`
+    : `<div class="detail-img-placeholder"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg></div>`;
+
+  const clearSection = loan.status==='ACTIVE' ? `
+    <div class="clear-form">
+      <h3>Mark as released</h3>
+      <div class="input-group">
+        <label class="lbl">Release date</label>
+        <input type="date" id="cl-date" value="${today()}">
+      </div>
+      <div class="input-group">
+        <label class="lbl">Total amount collected (₹)</label>
+        <input type="number" id="cl-amount" placeholder="Principal + Interest" inputmode="numeric">
+      </div>
+      <button class="submit-btn" onclick="clearLoan('${firestoreId}')">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Release &amp; Close
+      </button>
+    </div>` : loan.status==='RELEASED' ? `
+    <div class="card" style="border-color:rgba(76,175,128,.2)">
+      <div class="field-grid">
+        <div><div class="field-k">Release date</div><div class="field-v">${fmtDate(loan.releaseDate)}</div></div>
+        <div><div class="field-k">Total collected</div><div class="field-v money">${fmtMoneyFull(loan.releaseAmount)}</div></div>
+      </div>
+    </div>` : '';
+
+  const commsSection = loan.status==='ACTIVE' ? `
+    <div class="card-actions" style="padding:0">
+      <a class="btn sms" href="sms:${loan.phone}?body=${encodeURIComponent(smsText(loan))}">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>SMS
+      </a>
+      <a class="btn wa" href="https://wa.me/91${loan.phone}?text=${encodeURIComponent(smsText(loan))}" target="_blank">
+        <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>WhatsApp
+      </a>
+    </div>` : '';
+
+  document.getElementById('detail-body').innerHTML = `
+    <div class="detail-amount">
+      <div class="detail-amount-val">${fmtMoneyFull(loan.amount)}</div>
+      <div class="detail-amount-label">Disbursed · <span class="pill ${s}" style="display:inline">${s==='released'?'Released':s.charAt(0).toUpperCase()+s.slice(1)}</span></div>
+    </div>
+    ${imgHtml}
+    <div class="card">
+      <div class="field-grid">
+        <div><div class="field-k">Receipt ID</div><div class="field-v" style="font-family:var(--mono);font-size:12px">${esc(loan.receiptId)}</div></div>
+        <div><div class="field-k">Date issued</div><div class="field-v">${fmtDate(loan.date)}</div></div>
+        <div><div class="field-k">Customer</div><div class="field-v">${esc(loan.name)}</div></div>
+        <div><div class="field-k">Phone</div><div class="field-v" style="font-family:var(--mono);font-size:12px">${esc(loan.phone)}</div></div>
+        <div><div class="field-k">Gold weight</div><div class="field-v">${Number(loan.weight).toFixed(2)} g</div></div>
+        <div><div class="field-k">Days active</div><div class="field-v">${loan.status==='RELEASED'?fmtDate(loan.releaseDate):days+' days'}</div></div>
+      </div>
+      ${loan.items?`<div class="divider"></div><div class="field-k">Items</div><div class="field-v" style="margin-top:4px">${esc(loan.items)}</div>`:''}
+      ${loan.status==='ACTIVE'?`
+      <div class="divider"></div>
+      <div class="field-k" style="margin-bottom:6px">Vault location</div>
+      <div class="vault-toggle">
+        <div class="vault-opt local${(!loan.vault||loan.vault==='local')?' active':''}" onclick="changeVault('${firestoreId}','local')">
+          <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>Local Vault
+        </div>
+        <div class="vault-opt bank${loan.vault==='bank'?' active':''}" onclick="changeVault('${firestoreId}','bank')">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Bank Vault
+        </div>
+      </div>`:''}
+      ${loan.status==='RELEASED'&&loan.vault?`<div class="divider"></div><div class="field-k">Was in vault</div><div class="vault-badge ${loan.vault}" style="display:inline-flex;margin-top:4px">${loan.vault==='local'?'Local Vault':'Bank Vault'}</div>`:''}
+    </div>
+    ${commsSection}
+    ${clearSection}
+    ${loan.status==='ACTIVE'||loan.status==='RELEASED'?`<div class="btn danger" onclick="confirmDelete('${firestoreId}')" style="margin-top:4px"><svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>Delete record</div>`:''}
+  `;
+  document.getElementById('detail-overlay').classList.add('open');
+}
+
+window.closeDetail = function() {
+  document.getElementById('detail-overlay').classList.remove('open');
+}
+
+window.openEditModal = function() {
+  const loan = allLoans.find(l => l.firestoreId === currentDetailId);
+  if (!loan) return;
+  const metal = loan.metal || 'gold';
+  showModal(`
+    <div class="modal-title">Edit Loan Details</div>
+    <div class="form-section">
+      <div class="input-group">
+        <label class="lbl">Customer name</label>
+        <input type="text" id="ed-name" value="${esc(loan.name)}" autocorrect="off">
+        <div class="error-msg" id="ed-err-name"></div>
+      </div>
+      <div class="input-group">
+        <label class="lbl">Phone number</label>
+        <input type="tel" id="ed-phone" value="${esc(loan.phone)}" maxlength="10" inputmode="numeric">
+        <div class="error-msg" id="ed-err-phone"></div>
+      </div>
+      <div class="input-group">
+        <label class="lbl">Date of receipt</label>
+        <input type="date" id="ed-date" value="${loan.date}" max="${today()}">
+      </div>
+      <div class="input-group">
+        <label class="lbl">Items description</label>
+        <textarea id="ed-items">${esc(loan.items||'')}</textarea>
+      </div>
+      <div class="input-group">
+        <label class="lbl">Metal type</label>
+        <select id="ed-metal">
+          <option value="gold"  ${metal==='gold'  ?'selected':''}>Gold</option>
+          <option value="silver"${metal==='silver'?'selected':''}>Silver</option>
+          <option value="mixed" ${metal==='mixed' ?'selected':''}>Mixed</option>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="input-group">
+          <label class="lbl">Weight (g)</label>
+          <input type="number" id="ed-weight" value="${loan.weight}" step="0.01" min="0.01" inputmode="decimal">
+          <div class="error-msg" id="ed-err-weight"></div>
+        </div>
+        <div class="input-group">
+          <label class="lbl">Disbursed amount (₹)</label>
+          <input type="number" id="ed-amount" value="${loan.amount}" step="1" min="1" inputmode="numeric">
+          <div class="error-msg" id="ed-err-amount"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <div class="btn ghost" style="flex:1" onclick="closeModal()">Cancel</div>
+      <div class="btn primary" style="flex:1" onclick="saveEdit('${loan.firestoreId}')">
+        <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="20 6 9 17 4 12"/></svg>
+        Save changes
+      </div>
+    </div>
+  `);
+}
+
+window.saveEdit = async function(firestoreId) {
+  const name   = document.getElementById('ed-name').value.trim();
+  const phone  = document.getElementById('ed-phone').value.trim();
+  const date   = document.getElementById('ed-date').value;
+  const items  = document.getElementById('ed-items').value.trim();
+  const metal  = document.getElementById('ed-metal') ? document.getElementById('ed-metal').value : 'gold';
+  const weight = document.getElementById('ed-weight').value;
+  const amount = document.getElementById('ed-amount').value;
+
+  let valid = true;
+  function setErr(id, errId, msg) {
+    const f = document.getElementById(id);
+    const e = document.getElementById(errId);
+    if (msg) { f.classList.add('input-error'); e.textContent = msg; e.style.display = 'block'; valid = false; }
+    else { f.classList.remove('input-error'); e.style.display = 'none'; e.textContent = ''; }
+  }
+
+  if (!name || name.length < 2) setErr('ed-name','ed-err-name','Enter a valid name.');
+  else setErr('ed-name','ed-err-name','');
+
+  if (!/^\d{10}$/.test(phone)) setErr('ed-phone','ed-err-phone','Must be exactly 10 digits.');
+  else setErr('ed-phone','ed-err-phone','');
+
+  if (!weight || Number(weight) <= 0) setErr('ed-weight','ed-err-weight','Must be greater than 0.');
+  else setErr('ed-weight','ed-err-weight','');
+
+  if (!amount || Number(amount) <= 0) setErr('ed-amount','ed-err-amount','Must be greater than 0.');
+  else setErr('ed-amount','ed-err-amount','');
+
+  if (!valid) return;
+
+  try {
+    setSyncStatus('syncing');
+    await updateDoc(doc(db, 'loans', firestoreId), {
+      name: name.replace(/\b\w/g, c => c.toUpperCase()),
+      phone,
+      date,
+      items,
+      metal,
+      weight: parseFloat(Number(weight).toFixed(2)),
+      amount: parseInt(amount)
+    });
+    closeModal();
+    toast('Loan updated successfully', 'success');
+    setTimeout(() => openDetail(firestoreId), 600);
+  } catch(e) {
+    console.error('saveEdit error:', e);
+    if (e.code === 'permission-denied') toast('Permission denied — check Firestore rules', 'error');
+    else toast('Error saving — check connection', 'error');
+    setSyncStatus('offline');
+  }
+}
+
+window.clearLoan = async function(firestoreId) {
+  const loan = allLoans.find(l=>l.firestoreId===firestoreId);
+  if (!loan) return;
+  const releaseDate = document.getElementById('cl-date').value;
+  const releaseAmount = document.getElementById('cl-amount').value;
+  if (!releaseDate) { toast('Enter a release date','error'); return; }
+  if (!releaseAmount || Number(releaseAmount)<=0) { toast('Enter the total amount collected','error'); return; }
+  try {
+    setSyncStatus('syncing');
+    await updateDoc(doc(db,'loans',firestoreId), {
+      status: 'RELEASED',
+      releaseDate: releaseDate,
+      releaseAmount: Number(releaseAmount)
+    });
+    closeDetail(); toast('Loan released successfully','success');
+  } catch(e) {
+    console.error('clearLoan error:', e);
+    if (e.code === 'permission-denied') {
+      toast('Permission denied — update Firestore rules','error');
+    } else {
+      toast('Error saving — check your internet connection','error');
+      setSyncStatus('offline');
+    }
+  }
+}
+
+window.confirmDelete = function(firestoreId) {
+  showModal(`
+    <div class="modal-title">Delete this record?</div>
+    <p style="font-size:13px;color:var(--text3);line-height:1.6">This will permanently remove the loan and its photo from all devices. This cannot be undone.</p>
+    <div class="modal-actions">
+      <div class="btn ghost" style="flex:1" onclick="closeModal()">Cancel</div>
+      <div class="btn danger" style="flex:1" onclick="deleteLoan('${firestoreId}')">Delete</div>
+    </div>`);
+}
+
+window.deleteLoan = async function(firestoreId) {
+  try {
+    setSyncStatus('syncing');
+    await deleteDoc(doc(db,'loans',firestoreId));
+    closeModal(); closeDetail(); toast('Record deleted');
+  } catch(e) { toast('Error deleting — check connection','error'); }
+}
+
+// ── NEW LOAN SUBMIT ────────────────────────────────────────────────────────
+function clearLoanForm() {
+  ['f-id','f-phone','f-name','f-items','f-weight','f-amount'].forEach(id=>{
+    document.getElementById(id).value='';
+    document.getElementById(id).classList.remove('input-error');
+  });
+  document.getElementById('f-date').value = today();
+  document.getElementById('f-date').max = today();
+  const metalEl = document.getElementById('f-metal');
+  if (metalEl) metalEl.value = 'gold';
+  ['err-id','err-phone','err-name','err-weight','err-amount'].forEach(id=>{
+    const el=document.getElementById(id); if(el){el.style.display='none';el.textContent='';}
+  });
+  capturedPhoto = null;
+  selectedVault = 'local';
+  document.getElementById('vault-opt-local').classList.add('active');
+  document.getElementById('vault-opt-bank').classList.remove('active');
+  document.getElementById('photo-icon-wrap').innerHTML = `<svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:var(--text3);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>`;
+}
+
+window.submitLoan = async function() {
+  const rid    = document.getElementById('f-id').value.trim();
+  const date   = document.getElementById('f-date').value;
+  const phone  = document.getElementById('f-phone').value.trim();
+  const name   = document.getElementById('f-name').value.trim();
+  const items  = document.getElementById('f-items').value.trim();
+  const weight = document.getElementById('f-weight').value;
+  const amount = document.getElementById('f-amount').value;
+
+  let valid = true;
+  function setErr(fieldId, errId, msg) {
+    const f=document.getElementById(fieldId), e=document.getElementById(errId);
+    if (msg) { f.classList.add('input-error'); if(e){e.textContent=msg;e.style.display='block';} valid=false; }
+    else { f.classList.remove('input-error'); if(e){e.style.display='none';e.textContent='';} }
+  }
+
+  if (!rid) setErr('f-id','err-id','Receipt ID is required.'); else setErr('f-id','err-id','');
+  if (!/^\d{10}$/.test(phone)) setErr('f-phone','err-phone','Enter a valid 10-digit number.'); else setErr('f-phone','err-phone','');
+  if (!name||name.length<2) setErr('f-name','err-name','Enter customer name (min 2 chars).'); else setErr('f-name','err-name','');
+  if (!weight||Number(weight)<=0) setErr('f-weight','err-weight','Enter weight greater than 0.'); else setErr('f-weight','err-weight','');
+  if (!amount||Number(amount)<=0) setErr('f-amount','err-amount','Enter disbursed amount.'); else setErr('f-amount','err-amount','');
+  if (!valid) return;
+
+  // Duplicate receipt ID check
+  const dupe = allLoans.find(l => l.receiptId === rid);
+  if (dupe) { setErr('f-id','err-id','Bill number already in use.'); return; }
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  try {
+    setSyncStatus('syncing');
+
+    const loan = {
+      receiptId: rid,
+      date,
+      phone,
+      name: name.replace(/\b\w/g, c=>c.toUpperCase()),
+      items,
+      weight: parseFloat(Number(weight).toFixed(2)),
+      amount: parseInt(amount),
+      status: 'ACTIVE',
+      vault: selectedVault,
+      metal: document.getElementById('f-metal') ? document.getElementById('f-metal').value : 'gold',
+      photo: capturedPhoto || null,
+      createdAt: serverTimestamp()
+    };
+
+    await addDoc(loansCol, loan);
+    clearLoanForm();
+    toast('Loan disbursed successfully','success');
+    switchScreen('dashboard');
+
+    // Notification modal
+    const msg = `Thank you ${loan.name} for visiting us. Your Gold Loan has been successfully processed against Bill No: ${loan.receiptId} for an amount of ${fmtMoneyFull(loan.amount)}. Please preserve your manual receipt carefully for release. - Mahadev Pawn`;
+    setTimeout(()=>{
+      showModal(`
+        <div class="modal-title">Notify customer?</div>
+        <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:12px">${esc(msg)}</p>
+        <div class="modal-actions">
+          <a class="btn sms" style="flex:1" href="sms:${phone}?body=${encodeURIComponent(msg)}" onclick="closeModal()">
+            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Send SMS
+          </a>
+          <a class="btn wa" style="flex:1" href="https://wa.me/91${phone}?text=${encodeURIComponent(msg)}" target="_blank" onclick="closeModal()">
+            <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>WhatsApp
+          </a>
+          <div class="btn ghost" onclick="closeModal()">Skip</div>
+        </div>`);
+    }, 500);
+  } catch(e) {
+    console.error(e);
+    toast('Error saving loan — check connection','error');
+    setSyncStatus('offline');
+  } finally {
+    btn.disabled=false;
+    btn.innerHTML=`<svg viewBox="0 0 24 24" style="width:19px;height:19px;stroke:#1A1208;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Submit &amp; Disburse`;
+  }
+}
+
+// ── VAULT SELECTION ────────────────────────────────────────────────────────
+let selectedVault = 'local';
+
+window.selectVault = function(v) {
+  selectedVault = v;
+  document.getElementById('vault-opt-local').classList.toggle('active', v==='local');
+  document.getElementById('vault-opt-bank').classList.toggle('active', v==='bank');
+}
+
+window.changeVault = async function(firestoreId, vault) {
+  try {
+    setSyncStatus('syncing');
+    await updateDoc(doc(db,'loans',firestoreId), { vault });
+    toast(`Moved to ${vault==='local'?'Local':'Bank'} Vault`, 'success');
+    // Refresh detail view
+    setTimeout(() => openDetail(firestoreId), 300);
+  } catch(e) {
+    console.error(e);
+    toast('Error updating vault location','error');
+    setSyncStatus('offline');
+  }
+}
+
+// Patch submitLoan to include vault
+const _origSubmit = window.submitLoan;
+window.submitLoan = async function() {
+  // vault is captured via selectedVault global at submit time
+  await _origSubmit();
+}
+
+// ── AUDIT ──────────────────────────────────────────────────────────────────
+let auditActive = false;
+let auditVerified = {}; // firestoreId -> true
+let auditFilter = 'all';
+let auditsCol = collection(db, 'audits');
+
+window.setAuditFilter = function(f) {
+  auditFilter = f;
+  ['all','unveri','verified','local','bank'].forEach(id => {
+    const el = document.getElementById('aft-' + id);
+    if (el) el.classList.toggle('active', id === f || (id === 'unveri' && f === 'unverified'));
+  });
+  renderAuditList();
+}
+
+function refreshAuditSummary() {
+  const active = allLoans.filter(l => l.status === 'ACTIVE');
+  const local  = active.filter(l => l.vault === 'local' || !l.vault);
+  const bank   = active.filter(l => l.vault === 'bank');
+
+  const localGold   = local.filter(l => !l.metal || l.metal === 'gold' || l.metal === 'mixed').reduce((s,l) => s + Number(l.weight), 0);
+  const localSilver = local.filter(l => l.metal === 'silver').reduce((s,l) => s + Number(l.weight), 0);
+  const localValue  = local.reduce((s,l) => s + (Number(l.amount)||0), 0);
+  const bankGold    = bank.filter(l => !l.metal || l.metal === 'gold' || l.metal === 'mixed').reduce((s,l) => s + Number(l.weight), 0);
+  const bankSilver  = bank.filter(l => l.metal === 'silver').reduce((s,l) => s + Number(l.weight), 0);
+  const bankValue   = bank.reduce((s,l) => s + (Number(l.amount)||0), 0);
+
+  document.getElementById('audit-local-count').textContent  = local.length + ' items';
+  document.getElementById('audit-local-weight').textContent = localGold.toFixed(2) + ' g gold';
+  document.getElementById('audit-local-silver').textContent = localSilver > 0 ? localSilver.toFixed(2) + ' g silver' : '';
+  document.getElementById('audit-local-value').textContent  = '₹' + localValue.toLocaleString('en-IN');
+  document.getElementById('audit-bank-count').textContent   = bank.length + ' items';
+  document.getElementById('audit-bank-weight').textContent  = bankGold.toFixed(2) + ' g gold';
+  document.getElementById('audit-bank-silver').textContent  = bankSilver > 0 ? bankSilver.toFixed(2) + ' g silver' : '';
+  document.getElementById('audit-bank-value').textContent   = '₹' + bankValue.toLocaleString('en-IN');
+}
+
+function updateAuditProgress() {
+  const active   = allLoans.filter(l => l.status === 'ACTIVE');
+  const total    = active.length;
+  const verified = active.filter(l => auditVerified[l.firestoreId]).length;
+  const pct      = total === 0 ? 0 : Math.round(verified / total * 100);
+  document.getElementById('audit-progress-pct').textContent   = pct + '%';
+  document.getElementById('audit-bar').style.width            = pct + '%';
+  document.getElementById('audit-progress-label').textContent = `${verified} of ${total} items verified`;
+}
+
+function renderAuditList() {
+  const cont = document.getElementById('audit-list');
+  if (!auditActive) { cont.innerHTML = ''; return; }
+
+  const active = allLoans.filter(l => l.status === 'ACTIVE');
+  if (!active.length) { cont.innerHTML = emptyState('No active loans to audit.'); return; }
+
+  // Apply filter
+  let list = active;
+  if      (auditFilter === 'unverified') list = active.filter(l => !auditVerified[l.firestoreId]);
+  else if (auditFilter === 'verified')   list = active.filter(l =>  auditVerified[l.firestoreId]);
+  else if (auditFilter === 'local')      list = active.filter(l => !l.vault || l.vault === 'local');
+  else if (auditFilter === 'bank')       list = active.filter(l =>  l.vault === 'bank');
+
+  if (!list.length) {
+    cont.innerHTML = `<div style="text-align:center;padding:24px;background:var(--surface);border-radius:var(--r2);color:var(--text3);font-size:13px">No items in this category.</div>`;
+    return;
+  }
+
+  // On 'all' tab — show unverified first, then verified with a divider
+  if (auditFilter === 'all') {
+    const unverified = list.filter(l => !auditVerified[l.firestoreId]);
+    const verified   = list.filter(l =>  auditVerified[l.firestoreId]);
+    let html = '';
+    if (unverified.length) {
+      html += `<div style="font-size:10px;font-weight:600;color:var(--amber);letter-spacing:.07em;text-transform:uppercase;padding:4px 0 6px">⬤ Unverified — ${unverified.length}</div>`;
+      html += unverified.map(l => auditItemRow(l)).join('');
+    }
+    if (verified.length) {
+      html += `<div style="font-size:10px;font-weight:600;color:var(--green);letter-spacing:.07em;text-transform:uppercase;padding:${unverified.length?'14px':4}px 0 6px">✓ Verified — ${verified.length}</div>`;
+      html += verified.map(l => auditItemRow(l)).join('');
+    }
+    cont.innerHTML = html;
+    return;
+  }
+
+  cont.innerHTML = list.map(l => auditItemRow(l)).join('');
+}
+
+function auditItemRow(l) {
+  const v          = l.vault || 'local';
+  const isVerified = !!auditVerified[l.firestoreId];
+  const verClass   = isVerified ? (v === 'local' ? ' verified-local' : ' verified-bank') : '';
+  const metalTag   = l.metal && l.metal !== 'gold'
+    ? `<span style="font-size:10px;padding:1px 6px;border-radius:10px;background:#1A1A2A;border:1px solid #3A3A5A;color:#A0A0C0;margin-left:4px">${esc(l.metal)}</span>`
+    : '';
+  return `
+  <div class="audit-item${verClass}" id="aitem-${l.firestoreId}" style="margin-bottom:6px">
+    <div class="audit-check" onclick="toggleVerify('${l.firestoreId}')">
+      <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div class="audit-item-info">
+      <div class="audit-item-name">${esc(l.name)}</div>
+      <div class="audit-item-meta">
+        <span class="vault-badge ${v}" style="font-size:10px;padding:2px 7px">${v === 'local' ? '🔒 Local' : '🏦 Bank'}</span>${metalTag}
+        · <span style="font-family:var(--mono);font-weight:500;color:var(--gold)">${esc(String(l.receiptId))}</span>
+      </div>
+      <div class="audit-item-meta" style="margin-top:2px;color:var(--text3)">${esc((l.items || '—').substring(0,40))}</div>
+    </div>
+    <div class="audit-item-right">
+      <div class="audit-item-weight">${Number(l.weight).toFixed(2)}g</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:2px">${fmtMoneyFull(l.amount)}</div>
+    </div>
+  </div>`;
+}
+
+window.toggleVerify = function(firestoreId) {
+  auditVerified[firestoreId] = !auditVerified[firestoreId];
+  updateAuditProgress();
+  // Update just this item's class in-place without re-rendering whole list
+  const loan = allLoans.find(l => l.firestoreId === firestoreId);
+  const v    = (loan && loan.vault) || 'local';
+  const el   = document.getElementById('aitem-' + firestoreId);
+  if (el) {
+    if (auditVerified[firestoreId]) {
+      el.classList.add(v === 'local' ? 'verified-local' : 'verified-bank');
+    } else {
+      el.classList.remove('verified-local', 'verified-bank');
+    }
+    const check = el.querySelector('.audit-check');
+    if (check) check.style.transition = 'all .15s';
+  }
+  // If on a filter tab (not all), re-render so item moves to correct section
+  if (auditFilter !== 'all') renderAuditList();
+}
+
+window.startAudit = function() {
+  auditActive   = true;
+  auditVerified = {};
+  auditFilter   = 'all';
+  document.getElementById('audit-start-btn').style.display   = 'none';
+  document.getElementById('audit-end-btn').style.display     = 'flex';
+  document.getElementById('audit-progress-wrap').style.display = 'block';
+  document.getElementById('audit-filter-tabs').style.display = 'flex';
+  document.getElementById('audit-history-label').style.display = 'none';
+  document.getElementById('audit-history').style.display     = 'none';
+  // Reset filter tab highlight
+  ['all','unveri','verified','local','bank'].forEach(id => {
+    const el = document.getElementById('aft-' + id);
+    if (el) el.classList.toggle('active', id === 'all');
+  });
+  updateAuditProgress();
+  renderAuditList();
+  toast('Audit started — tap ✓ to mark each item verified');
+}
+
+window.endAudit = async function() {
+  const active = allLoans.filter(l=>l.status==='ACTIVE');
+  const total = active.length;
+  const verifiedIds = Object.keys(auditVerified).filter(id=>auditVerified[id]);
+  const verified = verifiedIds.length;
+  const missing = active.filter(l=>!auditVerified[l.firestoreId]);
+  const localCount = active.filter(l=>!l.vault||l.vault==='local').length;
+  const bankCount  = active.filter(l=>l.vault==='bank').length;
+  const localGold  = active.filter(l=>!l.vault||l.vault==='local').reduce((s,l)=>s+Number(l.weight),0);
+  const bankGold   = active.filter(l=>l.vault==='bank').reduce((s,l)=>s+Number(l.weight),0);
+
+  const missingList = missing.slice(0,5).map(l=>`• ${l.receiptId} — ${l.name} (${Number(l.weight).toFixed(2)}g)`).join('<br>');
+
+  showModal(`
+    <div class="modal-title">Audit Complete</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;text-align:center">
+      <div style="background:var(--card);border-radius:var(--r);padding:10px;border:1px solid var(--border)">
+        <div style="font-family:var(--mono);font-size:22px;color:var(--green)">${verified}</div>
+        <div style="font-size:10px;color:var(--text3)">Verified</div>
+      </div>
+      <div style="background:var(--card);border-radius:var(--r);padding:10px;border:1px solid var(--border)">
+        <div style="font-family:var(--mono);font-size:22px;color:var(--red)">${total-verified}</div>
+        <div style="font-size:10px;color:var(--text3)">Unverified</div>
+      </div>
+      <div style="background:var(--card);border-radius:var(--r);padding:10px;border:1px solid var(--border)">
+        <div style="font-family:var(--mono);font-size:22px;color:var(--gold)">${total}</div>
+        <div style="font-size:10px;color:var(--text3)">Total</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+      <div style="background:#0A1A2A;border:1px solid #1A4A7A;border-radius:var(--r);padding:10px">
+        <div style="font-size:10px;color:#60A8E0;margin-bottom:4px">🔒 LOCAL VAULT</div>
+        <div style="font-family:var(--mono);font-size:15px;color:var(--text)">${localCount} items</div>
+        <div style="font-size:11px;color:var(--text3)">${localGold.toFixed(2)} g</div>
+      </div>
+      <div style="background:#1A0A2A;border:1px solid #5A1A8A;border-radius:var(--r);padding:10px">
+        <div style="font-size:10px;color:#C060E0;margin-bottom:4px">🏦 BANK VAULT</div>
+        <div style="font-family:var(--mono);font-size:15px;color:var(--text)">${bankCount} items</div>
+        <div style="font-size:11px;color:var(--text3)">${bankGold.toFixed(2)} g</div>
+      </div>
+    </div>
+    ${missing.length>0?`<div style="background:#1A0000;border:1px solid #5A1010;border-radius:var(--r);padding:10px;margin-bottom:16px">
+      <div style="font-size:11px;color:var(--red);font-weight:600;margin-bottom:6px">⚠ ${missing.length} item(s) not physically verified</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.8">${missingList}${missing.length>5?`<br>…and ${missing.length-5} more`:''}</div>
+    </div>`:'<div style="background:#081A0F;border:1px solid #1A5030;border-radius:var(--r);padding:10px;margin-bottom:16px;font-size:13px;color:var(--green)">✓ All items physically verified</div>'}
+    <div class="modal-actions">
+      <div class="btn ghost" onclick="cancelEndAudit()">Continue audit</div>
+      <div class="btn primary" onclick="saveAudit(${total},${verified},${total-verified},${localCount},${bankCount},'${localGold.toFixed(2)}','${bankGold.toFixed(2)}')">Save &amp; Close</div>
+    </div>
+  `);
+}
+
+window.cancelEndAudit = function() {
+  closeModal();
+}
+
+window.saveAudit = async function(total,verified,missing,localCount,bankCount,localGold,bankGold) {
+  try {
+    // Save verified bill IDs list so history shows which were ticked
+    const verifiedIds = Object.keys(auditVerified).filter(id=>auditVerified[id]);
+    await addDoc(auditsCol, {
+      date: today(),
+      timestamp: Date.now(), // use epoch number, not serverTimestamp, to avoid orderBy issues
+      total, verified, missing, localCount, bankCount,
+      localGold: parseFloat(localGold), bankGold: parseFloat(bankGold),
+      verifiedIds
+    });
+    toast('Audit saved successfully','success');
+  } catch(e) { console.error(e); toast('Error saving audit','error'); }
+  closeModal();
+  auditActive = false;
+  auditVerified = {};
+  document.getElementById('audit-start-btn').style.display   = 'flex';
+  document.getElementById('audit-end-btn').style.display     = 'none';
+  document.getElementById('audit-progress-wrap').style.display = 'none';
+  document.getElementById('audit-filter-tabs').style.display = 'none';
+  document.getElementById('audit-history-label').style.display = 'block';
+  document.getElementById('audit-history').style.display     = 'block';
+  document.getElementById('audit-list').innerHTML = '';
+  loadAuditHistory();
+}
+
+async function loadAuditHistory() {
+  const cont = document.getElementById('audit-history');
+  cont.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px">Loading…</div>';
+  try {
+    // Use plain query — no orderBy — to avoid dropping docs without timestamp field
+    const snap = await new Promise(res => {
+      const q2 = query(auditsCol);
+      const unsub = onSnapshot(q2, s => { unsub(); res(s); });
+    });
+    if (snap.empty) { cont.innerHTML = emptyState('No audits recorded yet.'); return; }
+    // Sort client-side by timestamp desc
+    const docs = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a,b) => (Number(b.timestamp)||0) - (Number(a.timestamp)||0));
+
+    cont.innerHTML = docs.map(a => {
+      const aid = a.id;
+      const verifiedIds = a.verifiedIds || [];
+      // Build verified bills list
+      const verifiedLoans   = verifiedIds.map(id => allLoans.find(l => l.firestoreId === id)).filter(Boolean);
+      const unverifiedLoans = allLoans.filter(l =>
+        l.status === 'ACTIVE' &&
+        a.verifiedIds &&
+        !verifiedIds.includes(l.firestoreId)
+      );
+      const verifiedRows = verifiedLoans.map(l =>
+        `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px">
+          <span style="color:var(--text2)">${esc(l.name)}</span>
+          <span style="font-family:var(--mono);color:var(--green)">#${esc(String(l.receiptId))}</span>
+        </div>`
+      ).join('');
+      const unverifiedRows = unverifiedLoans.slice(0,20).map(l =>
+        `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px">
+          <span style="color:var(--text2)">${esc(l.name)}</span>
+          <span style="font-family:var(--mono);color:var(--amber)">#${esc(String(l.receiptId))}</span>
+        </div>`
+      ).join('');
+
+      return `<div class="audit-session-card" style="margin-bottom:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div class="audit-session-date">${fmtDate(a.date)}</div>
+          <div class="btn danger" onclick="deleteAudit('${aid}')" style="flex:none;padding:4px 10px;font-size:11px;border-radius:var(--r)">
+            <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+            Delete
+          </div>
+        </div>
+        <div class="audit-session-stats">
+          <div class="audit-session-stat"><div class="audit-session-val" style="color:var(--green)">${a.verified||0}</div><div class="audit-session-lbl">Verified</div></div>
+          <div class="audit-session-stat"><div class="audit-session-val" style="color:var(--amber)">${a.missing||0}</div><div class="audit-session-lbl">Unverified</div></div>
+          <div class="audit-session-stat"><div class="audit-session-val">${a.total||0}</div><div class="audit-session-lbl">Total</div></div>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+          <span class="vault-badge local">🔒 ${a.localCount||0} items · ${a.localGold||0}g</span>
+          <span class="vault-badge bank">🏦 ${a.bankCount||0} items · ${a.bankGold||0}g</span>
+        </div>
+        ${verifiedIds.length ? `
+        <div style="margin-top:10px">
+          <div style="display:flex;gap:6px">
+            <div onclick="toggleAuditDetail('av-${aid}')" style="flex:1;text-align:center;padding:6px;background:#081A0F;border:1px solid #1A5030;border-radius:var(--r);font-size:11px;font-weight:500;color:var(--green);cursor:pointer">
+              ✓ Show verified (${verifiedLoans.length})
+            </div>
+            <div onclick="toggleAuditDetail('au-${aid}')" style="flex:1;text-align:center;padding:6px;background:#1C1000;border:1px solid #5A2A00;border-radius:var(--r);font-size:11px;font-weight:500;color:var(--amber);cursor:pointer">
+              ⬤ Show unverified (${a.missing||0})
+            </div>
+          </div>
+          <div id="av-${aid}" style="display:none;margin-top:8px;max-height:200px;overflow-y:auto">
+            <div style="font-size:10px;color:var(--green);font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em">Verified items</div>
+            ${verifiedRows || '<div style="font-size:12px;color:var(--text3);padding:8px 0">None</div>'}
+          </div>
+          <div id="au-${aid}" style="display:none;margin-top:8px;max-height:200px;overflow-y:auto">
+            <div style="font-size:10px;color:var(--amber);font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em">Unverified items</div>
+            ${unverifiedRows || '<div style="font-size:12px;color:var(--text3);padding:8px 0">None — all verified!</div>'}
+          </div>
+        </div>` : ''}
+      </div>`;
+    }).join('');
+  } catch(e) {
+    console.error('loadAuditHistory error:', e);
+    cont.innerHTML = emptyState('Could not load audit history.');
+  }
+}
+
+window.toggleAuditDetail = function(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  // Close sibling panel (av/au)
+  const isVerified = id.startsWith('av-');
+  const auditId    = id.slice(3);
+  const sibling    = document.getElementById((isVerified ? 'au-' : 'av-') + auditId);
+  if (sibling && sibling.style.display !== 'none') sibling.style.display = 'none';
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+const _origSwitch = window.switchScreen;
+window.switchScreen = function(name) {
+  _origSwitch(name);
+  if (name==='audit') { refreshAuditSummary(); loadAuditHistory(); }
+}
+
+// ── ALL BILLS ──────────────────────────────────────────────────────────────
+let billsFilter = 'all';
+
+window.openAllBills = function() {
+  billsFilter = 'all';
+  document.getElementById('bills-search').value = '';
+  document.getElementById('bills-sort').value = 'date-desc';
+  ['all','active','overdue','critical','released'].forEach(f => {
+    document.getElementById('bf-'+f).classList.toggle('active', f === 'all');
+  });
+  renderBillsList();
+  document.getElementById('bills-overlay').style.display = 'flex';
+}
+
+window.closeAllBills = function() {
+  document.getElementById('bills-overlay').style.display = 'none';
+}
+
+window.setBillsFilter = function(f) {
+  billsFilter = f;
+  ['all','active','overdue','critical','released'].forEach(id => {
+    document.getElementById('bf-'+id).classList.toggle('active', id === f);
+  });
+  renderBillsList();
+}
+
+window.renderBillsList = function() {
+  const q      = (document.getElementById('bills-search').value||'').trim().toLowerCase();
+  const sort   = document.getElementById('bills-sort').value;
+  const cont   = document.getElementById('bills-list');
+
+  let list = [...allLoans];
+
+  // Filter by status bucket
+  if (billsFilter === 'active')   list = list.filter(l => l.status==='ACTIVE' && ['active','due'].includes(loanStatus(l)));
+  if (billsFilter === 'overdue')  list = list.filter(l => l.status==='ACTIVE' && loanStatus(l)==='overdue');
+  if (billsFilter === 'critical') list = list.filter(l => l.status==='ACTIVE' && loanStatus(l)==='critical');
+  if (billsFilter === 'released') list = list.filter(l => l.status==='RELEASED');
+
+  // Search
+  if (q) list = list.filter(l =>
+    l.receiptId.toLowerCase().includes(q) ||
+    l.name.toLowerCase().includes(q) ||
+    l.phone.includes(q) ||
+    (l.items||'').toLowerCase().includes(q)
+  );
+
+  // Sort
+  if (sort === 'date-desc')   list.sort((a,b) => b.date.localeCompare(a.date));
+  if (sort === 'date-asc')    list.sort((a,b) => a.date.localeCompare(b.date));
+  if (sort === 'billid-asc')  list.sort((a,b) => Number(a.receiptId) - Number(b.receiptId));
+  if (sort === 'billid-desc') list.sort((a,b) => Number(b.receiptId) - Number(a.receiptId));
+  if (sort === 'amount-desc') list.sort((a,b) => Number(b.amount)-Number(a.amount));
+  if (sort === 'amount-asc')  list.sort((a,b) => Number(a.amount)-Number(b.amount));
+  if (sort === 'name-asc')    list.sort((a,b) => a.name.localeCompare(b.name));
+  if (sort === 'days-desc')   list.sort((a,b) => daysSince(b.date)-daysSince(a.date));
+
+  // Count badge
+  document.getElementById('bills-count').textContent = `(${list.length})`;
+
+  if (!list.length) {
+    cont.innerHTML = emptyState(q ? `No bills matching "${esc(q)}"` : 'No bills in this category.');
+    return;
+  }
+
+  cont.innerHTML = list.map((l, idx) => {
+    const s = l.status === 'RELEASED' ? 'released' : loanStatus(l);
+    const days = daysSince(l.date);
+    const pillText = {
+      active:   'Active',
+      due:      'Due soon',
+      overdue:  `${days}d overdue`,
+      critical: `${days}d critical`,
+      released: 'Released'
+    }[s] || 'Active';
+
+    const vaultBadge = l.vault
+      ? `<span style="font-size:10px;padding:2px 7px;border-radius:20px;border:1px solid var(--border);color:var(--text3);margin-left:5px">${l.vault==='local'?'🔒 Local':'🏦 Bank'}</span>`
+      : '';
+
+    return `<div class="bill-row${s==='critical'?' critical-border':''}">
+      <div class="bill-row-header">
+        <div>
+          <div class="bill-row-id">${esc(l.receiptId)}${vaultBadge}</div>
+          <div class="bill-row-name">${esc(l.name)}</div>
+        </div>
+        <div class="pill ${s}">${pillText}</div>
+      </div>
+      <div class="bill-row-meta">
+        <div class="bill-row-meta-item money">₹<span>${Number(l.amount).toLocaleString('en-IN')}</span></div>
+        <div class="bill-row-meta-item"><span>${Number(l.weight).toFixed(2)}g</span> gold</div>
+        <div class="bill-row-meta-item"><span>${fmtDate(l.date)}</span></div>
+      </div>
+      ${l.items ? `<div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.4">${esc(l.items.substring(0,60))}${l.items.length>60?'…':''}</div>` : ''}
+      <div class="bill-row-actions">
+        <div class="btn ghost" style="flex:1;font-size:12px" onclick="viewFromBills('${l.firestoreId}')">
+          <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          View
+        </div>
+        <div class="btn danger" style="flex:1;font-size:12px" onclick="deleteFromBills('${l.firestoreId}','${esc(l.receiptId)}','${esc(l.name)}')">
+          <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+          Delete
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.viewFromBills = function(firestoreId) {
+  closeAllBills();
+  setTimeout(() => openDetail(firestoreId), 100);
+}
+
+window.deleteFromBills = function(firestoreId, receiptId, name) {
+  showModal(`
+    <div class="modal-title">Delete Bill #${receiptId}?</div>
+    <p style="font-size:13px;color:var(--text3);line-height:1.6">This will permanently remove <strong style="color:var(--text)">${name}</strong>'s loan record from all devices. This cannot be undone.</p>
+    <div class="modal-actions">
+      <div class="btn ghost" style="flex:1" onclick="closeModal()">Cancel</div>
+      <div class="btn danger" style="flex:1" onclick="confirmDeleteFromBills('${firestoreId}')">Delete</div>
+    </div>
+  `);
+}
+
+window.confirmDeleteFromBills = async function(firestoreId) {
+  try {
+    setSyncStatus('syncing');
+    await deleteDoc(doc(db, 'loans', firestoreId));
+    closeModal();
+    toast('Record deleted', 'success');
+    // Re-render list after Firestore listener updates
+    setTimeout(() => renderBillsList(), 600);
+  } catch(e) {
+    console.error(e);
+    if (e.code === 'permission-denied') toast('Permission denied — check Firestore rules', 'error');
+    else toast('Error deleting — check connection', 'error');
+    setSyncStatus('offline');
+  }
+}
+
+// ── REPORTS ────────────────────────────────────────────────────────────────
+let rptTab = 'monthly';
+let rptMonthOffset = 0; // 0 = current month, -1 = last month etc
+
+window.switchRptTab = function(tab) {
+  rptTab = tab;
+  ['monthly','customers','health'].forEach(t => {
+    document.getElementById('rtab-' + t).classList.toggle('active', t === tab);
+  });
+  renderReports();
+}
+
+window.shiftMonth = function(dir) {
+  rptMonthOffset += dir;
+  renderReports();
+}
+
+function renderReports() {
+  const cont = document.getElementById('rpt-body');
+  if (!cont) return;
+  if (rptTab === 'monthly')   cont.innerHTML = buildMonthlyReport();
+  if (rptTab === 'customers') cont.innerHTML = buildCustomerReport();
+  if (rptTab === 'health')    cont.innerHTML = buildHealthReport();
+}
+
+// ── helpers ─────────────────────────────────────────────────────────────────
+function monthKey(dateStr) { return dateStr ? dateStr.slice(0,7) : null; } // "2026-06"
+function monthLabel(key) {
+  if (!key) return '';
+  const [y,m] = key.split('-');
+  return new Date(+y, +m-1, 1).toLocaleDateString('en-IN',{month:'short',year:'numeric'});
+}
+function getMonthRange(offset) {
+  const d = new Date(); d.setDate(1);
+  d.setMonth(d.getMonth() + offset);
+  const y = d.getFullYear(), m = d.getMonth();
+  const start = `${y}-${String(m+1).padStart(2,'0')}-01`;
+  const end   = new Date(y, m+1, 0).toISOString().split('T')[0];
+  return { start, end, key: start.slice(0,7), label: d.toLocaleDateString('en-IN',{month:'long',year:'numeric'}) };
+}
+function pct(a,b) { return b ? Math.round(a/b*100) : 0; }
+function delta(curr, prev) {
+  if (!prev) return {txt:'—',cls:'flat'};
+  const d = curr - prev; const p = Math.round(d/prev*100);
+  if (d > 0) return {txt:`▲ ${p}%`,cls:'up'};
+  if (d < 0) return {txt:`▼ ${Math.abs(p)}%`,cls:'down'};
+  return {txt:'—',cls:'flat'};
+}
+
+// ── SVG line chart ────────────────────────────────────────────────────────
+function buildLineChart(points, color='#C9962A') {
+  if (!points.length) return '<div style="height:110px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px">No data</div>';
+  const W=300, H=90, PAD=6;
+  const vals = points.map(p=>p.v);
+  const max = Math.max(...vals)||1, min = Math.min(...vals);
+  const xStep = (W - PAD*2) / Math.max(points.length-1, 1);
+  const yScale = (H - PAD*2) / (max - min || 1);
+  const pts = points.map((p,i) => {
+    const x = PAD + i*xStep;
+    const y = H - PAD - (p.v - min)*yScale;
+    return {x, y, ...p};
+  });
+  const path = pts.map((p,i) => `${i===0?'M':'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const area = path + ` L${pts[pts.length-1].x.toFixed(1)},${H} L${PAD},${H} Z`;
+  const dots = pts.map(p=>`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="${color}"/>`).join('');
+  const labels = pts.map(p=>`<text x="${p.x.toFixed(1)}" y="${H+12}" text-anchor="middle" font-size="8" fill="#6A6050" font-family="monospace">${p.l}</text>`).join('');
+  return `<div class="line-chart-wrap"><svg viewBox="0 0 ${W} ${H+16}" preserveAspectRatio="none">
+    <defs><linearGradient id="lg${color.replace('#','')}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${color}" stop-opacity="0.25"/><stop offset="100%" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
+    <path d="${area}" fill="url(#lg${color.replace('#','')})" />
+    <path d="${path}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    ${dots}${labels}
+  </svg></div>`;
+}
+
+// ── SVG bar chart ─────────────────────────────────────────────────────────
+function buildBarChart(rows, colorClass='gold') {
+  if (!rows.length) return emptyState('No data yet.');
+  const max = Math.max(...rows.map(r=>r.v))||1;
+  return `<div class="bar-chart">${rows.map(r=>{
+    const w = Math.max(4, Math.round(r.v/max*100));
+    const disp = r.disp || (r.v >= 100000 ? '₹'+(r.v/100000).toFixed(1)+'L' : r.v >= 1000 ? '₹'+(r.v/1000).toFixed(0)+'K' : String(r.v));
+    return `<div class="bar-row">
+      <div class="bar-label">${r.l}</div>
+      <div class="bar-track"><div class="bar-fill ${colorClass}" style="width:${w}%"><span class="bar-val">${disp}</span></div></div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ── SVG donut ─────────────────────────────────────────────────────────────
+function buildDonut(slices) {
+  const total = slices.reduce((s,sl)=>s+sl.v,0)||1;
+  const R=38, CX=44, CY=44, r=22;
+  let angle = -Math.PI/2;
+  const paths = slices.map(sl => {
+    const sweep = (sl.v/total)*Math.PI*2;
+    const x1=CX+R*Math.cos(angle), y1=CY+R*Math.sin(angle);
+    angle += sweep;
+    const x2=CX+R*Math.cos(angle), y2=CY+R*Math.sin(angle);
+    const large = sweep > Math.PI ? 1 : 0;
+    return `<path d="M${CX},${CY} L${x1.toFixed(2)},${y1.toFixed(2)} A${R},${R},0,${large},1,${x2.toFixed(2)},${y2.toFixed(2)} Z" fill="${sl.c}"/>`;
+  });
+  const legend = slices.map(sl=>`
+    <div class="donut-leg-item">
+      <div class="donut-leg-dot" style="background:${sl.c}"></div>
+      <div class="donut-leg-label">${sl.l}</div>
+      <div class="donut-leg-val">${sl.disp||sl.v}</div>
+    </div>`).join('');
+  return `<div class="donut-wrap">
+    <svg class="donut-svg" width="88" height="88" viewBox="0 0 88 88">
+      ${paths.join('')}
+      <circle cx="${CX}" cy="${CY}" r="${r}" fill="var(--card)"/>
+      <text x="${CX}" y="${CY}" text-anchor="middle" dominant-baseline="middle" font-size="11" fill="#A09070" font-family="monospace">${total}</text>
+    </svg>
+    <div class="donut-legend">${legend}</div>
+  </div>`;
+}
+
+// ── MONTHLY REPORT ────────────────────────────────────────────────────────
+function buildMonthlyReport() {
+  const cur  = getMonthRange(rptMonthOffset);
+  const prev = getMonthRange(rptMonthOffset - 1);
+
+  const inRange = (loan, range) => loan.date >= range.start && loan.date <= range.end;
+  const curLoans  = allLoans.filter(l => inRange(l, cur));
+  const prevLoans = allLoans.filter(l => inRange(l, prev));
+
+  const curNew      = curLoans.length;
+  const prevNew     = prevLoans.length;
+  const curDisb     = curLoans.reduce((s,l)=>s+Number(l.amount),0);
+  const prevDisb    = prevLoans.reduce((s,l)=>s+Number(l.amount),0);
+  const curReleased = allLoans.filter(l => l.status==='RELEASED' && l.releaseDate >= cur.start && l.releaseDate <= cur.end);
+  const prevReleased= allLoans.filter(l => l.status==='RELEASED' && l.releaseDate >= prev.start && l.releaseDate <= prev.end);
+  const curColl     = curReleased.reduce((s,l)=>s+Number(l.releaseAmount||0),0);
+  const prevColl    = prevReleased.reduce((s,l)=>s+Number(l.releaseAmount||0),0);
+  const curGold     = curLoans.reduce((s,l)=>s+Number(l.weight),0);
+  const prevGold    = prevLoans.reduce((s,l)=>s+Number(l.weight),0);
+
+  // Last 6 months trend data
+  const last6 = Array.from({length:6},(_,i)=>getMonthRange(rptMonthOffset-5+i));
+  const trendLoans = last6.map(r=>({l:r.key.slice(5),v:allLoans.filter(l=>inRange(l,r)).length}));
+  const trendDisb  = last6.map(r=>({l:r.key.slice(5),v:allLoans.filter(l=>inRange(l,r)).reduce((s,l)=>s+Number(l.amount),0)}));
+  const trendColl  = last6.map(r=>({l:r.key.slice(5),v:allLoans.filter(l=>l.status==='RELEASED'&&l.releaseDate>=r.start&&l.releaseDate<=r.end).reduce((s,l)=>s+Number(l.releaseAmount||0),0)}));
+
+  const dN=delta(curNew,prevNew), dD=delta(curDisb,prevDisb), dC=delta(curColl,prevColl);
+
+  return `
+  <div class="rpt-section">
+    <div class="rpt-month-selector">
+      <button class="rpt-month-nav" onclick="shiftMonth(-1)">‹</button>
+      <div class="rpt-month-label">${cur.label}</div>
+      <button class="rpt-month-nav" onclick="shiftMonth(1)" ${rptMonthOffset>=0?'disabled style="opacity:.3"':''}>›</button>
+    </div>
+
+    <div class="rpt-kpi-row">
+      <div class="rpt-kpi"><div class="rpt-kpi-val">${curNew}</div><div class="rpt-kpi-lbl">New loans</div><div class="rpt-kpi-delta ${dN.cls}">${dN.txt}</div></div>
+      <div class="rpt-kpi"><div class="rpt-kpi-val">${curDisb>=100000?'₹'+(curDisb/100000).toFixed(1)+'L':fmtMoney(curDisb)}</div><div class="rpt-kpi-lbl">Disbursed</div><div class="rpt-kpi-delta ${dD.cls}">${dD.txt}</div></div>
+      <div class="rpt-kpi"><div class="rpt-kpi-val">${curColl>=100000?'₹'+(curColl/100000).toFixed(1)+'L':fmtMoney(curColl)}</div><div class="rpt-kpi-lbl">Collected</div><div class="rpt-kpi-delta ${dC.cls}">${dC.txt}</div></div>
+    </div>
+    <div class="rpt-kpi-row">
+      <div class="rpt-kpi"><div class="rpt-kpi-val">${curGold.toFixed(1)}g</div><div class="rpt-kpi-lbl">Gold taken</div><div class="rpt-kpi-delta ${delta(curGold,prevGold).cls}">${delta(curGold,prevGold).txt}</div></div>
+      <div class="rpt-kpi"><div class="rpt-kpi-val">${curReleased.length}</div><div class="rpt-kpi-lbl">Released</div><div class="rpt-kpi-delta ${delta(curReleased.length,prevReleased.length).cls}">${delta(curReleased.length,prevReleased.length).txt}</div></div>
+      <div class="rpt-kpi"><div class="rpt-kpi-val">${curNew?fmtMoney(Math.round(curDisb/curNew)):'—'}</div><div class="rpt-kpi-lbl">Avg loan</div><div class="rpt-kpi-delta flat"></div></div>
+    </div>
+
+    <div class="rpt-card">
+      <div class="rpt-card-title">New loans — 6 month trend</div>
+      ${buildLineChart(trendLoans,'#C9962A')}
+    </div>
+
+    <div class="rpt-card">
+      <div class="rpt-card-title">Disbursed vs Collected</div>
+      ${buildBarChart(last6.map((r,i)=>({l:r.key.slice(5),v:trendDisb[i].v,disp:trendDisb[i].v>=100000?'₹'+(trendDisb[i].v/100000).toFixed(1)+'L':trendDisb[i].v>=1000?'₹'+(trendDisb[i].v/1000).toFixed(0)+'K':'₹'+trendDisb[i].v})),'gold')}
+      <div class="rpt-divider"></div>
+      ${buildBarChart(last6.map((r,i)=>({l:r.key.slice(5),v:trendColl[i].v,disp:trendColl[i].v>=100000?'₹'+(trendColl[i].v/100000).toFixed(1)+'L':trendColl[i].v>=1000?'₹'+(trendColl[i].v/1000).toFixed(0)+'K':'₹'+trendColl[i].v})),'green')}
+      <div style="display:flex;gap:12px;margin-top:8px">
+        <span style="font-size:10px;color:var(--text3)"><span style="color:var(--gold)">■</span> Disbursed</span>
+        <span style="font-size:10px;color:var(--text3)"><span style="color:var(--green)">■</span> Collected</span>
+      </div>
+    </div>
+
+    <div class="rpt-card">
+      <div class="rpt-card-title">Loan status — ${cur.label}</div>
+      ${buildDonut([
+        {l:'Active',v:curLoans.filter(l=>l.status==='ACTIVE').length,c:'#C9962A',disp:curLoans.filter(l=>l.status==='ACTIVE').length+' loans'},
+        {l:'Released',v:curReleased.length,c:'#4CAF80',disp:curReleased.length+' loans'},
+      ])}
+    </div>
+  </div>`;
+}
+
+// ── CUSTOMER REPORT ───────────────────────────────────────────────────────
+function buildCustomerReport() {
+  const byKey = {};
+  allLoans.forEach(l => {
+    const phone = (l.phone || '').trim();
+    const name  = (l.name  || '').trim();
+    if (!phone || !name) return; // skip incomplete records
+    // Group by phone; if same phone has different names, use the most recent name
+    if (!byKey[phone]) byKey[phone] = {name, phone, loans:[]};
+    else byKey[phone].name = name; // keep latest name for this phone
+    byKey[phone].loans.push(l);
+  });
+  const customers = Object.values(byKey).map(c => {
+    const active   = c.loans.filter(l => l.status === 'ACTIVE');
+    const released = c.loans.filter(l => l.status === 'RELEASED');
+    const exposure     = active.reduce((s,l)   => s + (Number(l.amount)||0), 0);
+    const totalBorrowed= c.loans.reduce((s,l)  => s + (Number(l.amount)||0), 0);
+    const avgDur = released.length ? Math.round(
+      released.reduce((s,l) => {
+        if (!l.releaseDate || !l.date) return s;
+        return s + Math.floor((new Date(l.releaseDate) - new Date(l.date)) / 86400000);
+      }, 0) / released.length
+    ) : null;
+    return { ...c, active: active.length, released: released.length, exposure, totalBorrowed, avgDur, total: c.loans.length };
+  });
+
+  const topExposure  = [...customers].sort((a,b)=>b.exposure-a.exposure).slice(0,8);
+  const topRepeat    = [...customers].filter(c=>c.total>1).sort((a,b)=>b.total-a.total).slice(0,8);
+  const topBorrowed  = [...customers].sort((a,b)=>b.totalBorrowed-a.totalBorrowed).slice(0,8);
+
+  const totalCustomers = customers.length;
+  const repeatCustomers = customers.filter(c=>c.total>1).length;
+  const newThisMonth = Object.values((() => {
+    const m = getMonthRange(0);
+    const seen = {};
+    allLoans.filter(l=>l.date>=m.start&&l.date<=m.end).forEach(l=>seen[l.phone]=true);
+    return seen;
+  })()).length;
+
+  return `
+  <div class="rpt-section">
+    <div class="rpt-kpi-row">
+      <div class="rpt-kpi"><div class="rpt-kpi-val">${totalCustomers}</div><div class="rpt-kpi-lbl">Total customers</div></div>
+      <div class="rpt-kpi"><div class="rpt-kpi-val">${repeatCustomers}</div><div class="rpt-kpi-lbl">Repeat borrowers</div></div>
+      <div class="rpt-kpi"><div class="rpt-kpi-val">${pct(repeatCustomers,totalCustomers)}%</div><div class="rpt-kpi-lbl">Retention rate</div></div>
+    </div>
+
+    <div class="rpt-card">
+      <div class="rpt-card-title">Top customers by active exposure</div>
+      <table class="rpt-table">
+        <tr><th>#</th><th>Customer</th><th style="text-align:right">Exposure</th><th style="text-align:right">Loans</th></tr>
+        ${topExposure.map((c,i)=>`<tr>
+          <td class="rpt-rank">${i+1}</td>
+          <td><div style="font-size:12px;font-weight:500">${esc(c.name)}</div><div style="font-size:10px;color:var(--text3);font-family:var(--mono)">${esc(c.phone)}</div></td>
+          <td class="mono" style="text-align:right">${fmtMoney(c.exposure)}</td>
+          <td style="text-align:right"><span class="rpt-tag ${c.active>0?'amber':''}">${c.active} active</span></td>
+        </tr>`).join('')}
+      </table>
+    </div>
+
+    <div class="rpt-card">
+      <div class="rpt-card-title">Most frequent borrowers</div>
+      ${buildBarChart(topRepeat.map(c=>({l:c.name.split(' ')[0].slice(0,6),v:c.total,disp:c.total+' loans'})),'blue')}
+      <div class="rpt-divider"></div>
+      <table class="rpt-table">
+        <tr><th>#</th><th>Customer</th><th style="text-align:right">Loans</th><th style="text-align:right">Avg duration</th></tr>
+        ${topRepeat.map((c,i)=>`<tr>
+          <td class="rpt-rank">${i+1}</td>
+          <td style="font-size:12px;font-weight:500">${esc(c.name)}</td>
+          <td class="mono" style="text-align:right">${c.total}</td>
+          <td class="muted" style="text-align:right;font-size:11px">${c.avgDur!=null?c.avgDur+'d':'—'}</td>
+        </tr>`).join('')}
+      </table>
+    </div>
+
+    <div class="rpt-card">
+      <div class="rpt-card-title">Top by total amount borrowed</div>
+      <table class="rpt-table">
+        <tr><th>#</th><th>Customer</th><th style="text-align:right">Total</th></tr>
+        ${topBorrowed.map((c,i)=>`<tr>
+          <td class="rpt-rank">${i+1}</td>
+          <td style="font-size:12px;font-weight:500">${esc(c.name)}</td>
+          <td class="mono" style="text-align:right">${fmtMoney(c.totalBorrowed)}</td>
+        </tr>`).join('')}
+      </table>
+    </div>
+
+    <div class="rpt-card">
+      <div class="rpt-card-title">Customer loyalty split</div>
+      ${buildDonut([
+        {l:'First-time',v:customers.filter(c=>c.total===1).length,c:'#4090D0',disp:customers.filter(c=>c.total===1).length+' customers'},
+        {l:'2–4 loans',v:customers.filter(c=>c.total>=2&&c.total<=4).length,c:'#C9962A',disp:customers.filter(c=>c.total>=2&&c.total<=4).length+' customers'},
+        {l:'5+ loans',v:customers.filter(c=>c.total>=5).length,c:'#4CAF80',disp:customers.filter(c=>c.total>=5).length+' customers'},
+      ])}
+    </div>
+  </div>`;
+}
+
+// ── PORTFOLIO HEALTH REPORT ───────────────────────────────────────────────
+function buildHealthReport() {
+  const active   = allLoans.filter(l=>l.status==='ACTIVE');
+  const released = allLoans.filter(l=>l.status==='RELEASED'&&l.releaseDate);
+  const total    = allLoans.length;
+
+  const byStatus = {
+    due:      active.filter(l=>loanStatus(l)==='due').length,
+    active:   active.filter(l=>loanStatus(l)==='active').length,
+    overdue:  active.filter(l=>loanStatus(l)==='overdue').length,
+    critical: active.filter(l=>loanStatus(l)==='critical').length,
+  };
+
+  const overdueRate = pct(byStatus.overdue + byStatus.critical, active.length);
+
+  // Avg loan duration for released
+  const durations = released.map(l=>Math.floor((new Date(l.releaseDate)-new Date(l.date))/86400000)).filter(d=>d>=0);
+  const avgDur  = durations.length ? Math.round(durations.reduce((a,b)=>a+b,0)/durations.length) : 0;
+  const medDur  = durations.length ? durations.sort((a,b)=>a-b)[Math.floor(durations.length/2)] : 0;
+
+  // Duration buckets
+  const buckets = [
+    {l:'<30d', v:durations.filter(d=>d<30).length},
+    {l:'1–3m', v:durations.filter(d=>d>=30&&d<90).length},
+    {l:'3–6m', v:durations.filter(d=>d>=90&&d<180).length},
+    {l:'6–9m', v:durations.filter(d=>d>=180&&d<270).length},
+    {l:'>9m',  v:durations.filter(d=>d>=270).length},
+  ];
+
+  // Aging buckets for active loans
+  const agingBuckets = [
+    {l:'0–7d',   v:active.filter(l=>{const d=daysSince(l.date);return d<=7;}).length},
+    {l:'8–30d',  v:active.filter(l=>{const d=daysSince(l.date);return d>7&&d<=30;}).length},
+    {l:'1–3m',   v:active.filter(l=>{const d=daysSince(l.date);return d>30&&d<=90;}).length},
+    {l:'3–6m',   v:active.filter(l=>{const d=daysSince(l.date);return d>90&&d<=180;}).length},
+    {l:'6–11m',  v:active.filter(l=>{const d=daysSince(l.date);return d>180&&d<330;}).length},
+    {l:'>11m',   v:active.filter(l=>daysSince(l.date)>=330).length},
+  ];
+
+  // Critical loans detail
+  const criticalLoans = active.filter(l=>loanStatus(l)==='critical')
+    .sort((a,b)=>daysSince(b.date)-daysSince(a.date)).slice(0,5);
+
+  // Monthly overdue trend (last 6m)
+  const last6 = Array.from({length:6},(_,i)=>getMonthRange(-5+i));
+  const overdueByMonth = last6.map(r => ({
+    l: r.key.slice(5),
+    v: allLoans.filter(l => l.date >= r.start && l.date <= r.end && l.status==='ACTIVE' && loanStatus(l)==='overdue').length
+  }));
+
+  return `
+  <div class="rpt-section">
+    <div class="rpt-kpi-row">
+      <div class="rpt-kpi"><div class="rpt-kpi-val" style="color:var(--red)">${overdueRate}%</div><div class="rpt-kpi-lbl">Overdue rate</div></div>
+      <div class="rpt-kpi"><div class="rpt-kpi-val">${avgDur}d</div><div class="rpt-kpi-lbl">Avg duration</div></div>
+      <div class="rpt-kpi"><div class="rpt-kpi-val">${medDur}d</div><div class="rpt-kpi-lbl">Median duration</div></div>
+    </div>
+
+    <div class="rpt-card">
+      <div class="rpt-card-title">Active portfolio breakdown</div>
+      ${buildDonut([
+        {l:'Healthy',  v:byStatus.active,   c:'#4CAF80', disp:byStatus.active+' loans'},
+        {l:'Due soon', v:byStatus.due,      c:'#C9B020', disp:byStatus.due+' loans'},
+        {l:'Overdue',  v:byStatus.overdue,  c:'#E07B2E', disp:byStatus.overdue+' loans'},
+        {l:'Critical', v:byStatus.critical, c:'#C84040', disp:byStatus.critical+' loans'},
+      ])}
+    </div>
+
+    <div class="rpt-card">
+      <div class="rpt-card-title">Aging buckets — active loans</div>
+      ${buildBarChart(agingBuckets,'gold')}
+    </div>
+
+    <div class="rpt-card">
+      <div class="rpt-card-title">Loan duration buckets — released loans</div>
+      ${released.length ? buildBarChart(buckets,'blue') : '<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px">No released loans yet</div>'}
+    </div>
+
+    <div class="rpt-card">
+      <div class="rpt-card-title">Overdue count — 6 month trend</div>
+      ${buildLineChart(overdueByMonth,'#C84040')}
+    </div>
+
+    ${criticalLoans.length ? `
+    <div class="rpt-card" style="border-color:#5A1010">
+      <div class="rpt-card-title" style="color:var(--red)">
+        ⚠ Critical loans — action required
+        <span style="font-size:10px;color:var(--text3)">${criticalLoans.length} shown</span>
+      </div>
+      <table class="rpt-table">
+        <tr><th>Customer</th><th style="text-align:right">Amount</th><th style="text-align:right">Age</th></tr>
+        ${criticalLoans.map(l=>`<tr>
+          <td onclick="openDetail('${l.firestoreId}')" style="cursor:pointer">
+            <div style="font-size:12px;font-weight:500;color:var(--red)">${esc(l.name)}</div>
+            <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">${esc(l.receiptId)}</div>
+          </td>
+          <td class="mono" style="text-align:right">${fmtMoney(l.amount)}</td>
+          <td style="text-align:right"><span class="rpt-tag red">${daysSince(l.date)}d</span></td>
+        </tr>`).join('')}
+      </table>
+    </div>` : ''}
+  </div>`;
+}
+
+// Patch switchScreen for reports
+const _origSwitchForReports = window.switchScreen;
+window.switchScreen = function(name) {
+  _origSwitchForReports(name);
+  if (name === 'reports') { rptTab = 'monthly'; ['monthly','customers','health'].forEach(t=>{ const el=document.getElementById('rtab-'+t); if(el) el.classList.toggle('active',t==='monthly'); }); renderReports(); }
+}
+
+// ── BANK PLEDGE TRACKER ───────────────────────────────────────────────────
+const bankCol = collection(db, 'bankpledges');
+let allBankPledges = [];
+
+// Real-time listener for bank pledges
+onSnapshot(query(bankCol), snap => {
+  allBankPledges = snap.docs
+    .map(d => ({ pledgeId: d.id, ...d.data() }))
+    .sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  refreshBankSummary();
+  renderBankList();
+});
+
+function refreshBankSummary() {
+  const count  = allBankPledges.length;
+  const total  = allBankPledges.reduce((s,p) => s + (Number(p.bankAmount)||0), 0);
+  // Margin = bank amount minus linked pawn amount
+  const margin = allBankPledges.reduce((s,p) => {
+    const pawn = allLoans.find(l => String(l.receiptId) === String(p.pawnBillId));
+    const pawnAmt = pawn ? Number(pawn.amount) : 0;
+    return s + (Number(p.bankAmount)||0) - pawnAmt;
+  }, 0);
+  const bkCount  = document.getElementById('bk-count');
+  const bkTotal  = document.getElementById('bk-total');
+  const bkMargin = document.getElementById('bk-margin');
+  if (bkCount)  bkCount.textContent  = count;
+  if (bkTotal)  bkTotal.textContent  = fmtMoney(total);
+  if (bkMargin) bkMargin.textContent = fmtMoney(Math.max(0, margin));
+}
+
+// Live pawn bill preview as user types
+window.previewPawnBill = function() {
+  const id = document.getElementById('bk-pawn-id').value.trim();
+  const wrap = document.getElementById('bk-pawn-preview');
+  const content = document.getElementById('bk-pawn-preview-content');
+  if (!id) { wrap.style.display = 'none'; return; }
+  const loan = allLoans.find(l => String(l.receiptId) === id);
+  if (!loan) {
+    wrap.style.display = 'block';
+    content.innerHTML = `<div style="font-size:12px;color:var(--red)">No pawn loan found for bill #${esc(id)}</div>`;
+    return;
+  }
+  wrap.style.display = 'block';
+  content.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:13px;font-weight:500;color:var(--text)">${esc(loan.name)}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">${fmtDate(loan.date)} · ${Number(loan.weight).toFixed(2)}g</div>
+      </div>
+      <div style="font-family:var(--mono);font-size:14px;color:var(--gold)">${fmtMoneyFull(loan.amount)}</div>
+    </div>`;
+}
+
+window.addBankPledge = async function() {
+  const pawnBillId = document.getElementById('bk-pawn-id').value.trim();
+  const bankBillId = document.getElementById('bk-bank-id').value.trim();
+  const date       = document.getElementById('bk-date').value;
+  const bankAmount = document.getElementById('bk-amount').value;
+
+  let valid = true;
+  function setErr(id, msg) {
+    const e = document.getElementById(id);
+    if (msg) { e.textContent = msg; e.style.display = 'block'; valid = false; }
+    else { e.style.display = 'none'; e.textContent = ''; }
+  }
+
+  if (!pawnBillId) setErr('bk-err-pawn', 'Enter the original pawn bill ID.');
+  else setErr('bk-err-pawn', '');
+
+  if (!bankBillId) setErr('bk-err-bankid', 'Enter the bank loan bill ID.');
+  else setErr('bk-err-bankid', '');
+
+  if (!bankAmount || Number(bankAmount) <= 0) setErr('bk-err-amount', 'Enter the bank loan amount.');
+  else setErr('bk-err-amount', '');
+
+  if (!valid) return;
+
+  // Warn if pawn bill not found but don't block — might be personal gold
+  const linkedLoan = allLoans.find(l => String(l.receiptId) === pawnBillId);
+
+  try {
+    setSyncStatus('syncing');
+    await addDoc(bankCol, {
+      pawnBillId,
+      bankBillId,
+      date: date || today(),
+      bankAmount: parseInt(bankAmount),
+      linkedCustomer: linkedLoan ? linkedLoan.name : null,
+      linkedPawnAmount: linkedLoan ? Number(linkedLoan.amount) : null,
+      createdAt: Date.now()
+    });
+
+    // Reset form
+    ['bk-pawn-id','bk-bank-id','bk-amount'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('bk-date').value = today();
+    document.getElementById('bk-pawn-preview').style.display = 'none';
+    toast('Bank pledge added', 'success');
+  } catch(e) {
+    console.error(e);
+    toast('Error saving — check connection', 'error');
+    setSyncStatus('offline');
+  }
+}
+
+window.renderBankList = function() {
+  const q = (document.getElementById('bk-search')||{value:''}).value.trim().toLowerCase();
+  const cont = document.getElementById('bk-list');
+  if (!cont) return;
+
+  let list = [...allBankPledges];
+  if (q) list = list.filter(p =>
+    String(p.pawnBillId).includes(q) ||
+    String(p.bankBillId).toLowerCase().includes(q) ||
+    (p.linkedCustomer||'').toLowerCase().includes(q)
+  );
+
+  document.getElementById('bk-list-count').textContent = `(${list.length})`;
+
+  if (!list.length) {
+    cont.innerHTML = emptyState(q ? `No pledges matching "${esc(q)}"` : 'No bank pledges recorded yet.');
+    return;
+  }
+
+  cont.innerHTML = list.map(p => {
+    const pawnLoan = allLoans.find(l => String(l.receiptId) === String(p.pawnBillId));
+    const pawnAmt  = pawnLoan ? Number(pawnLoan.amount) : (p.linkedPawnAmount || 0);
+    const margin   = Number(p.bankAmount) - pawnAmt;
+    return `
+    <div class="card" style="margin-bottom:10px;border-color:#1A3A6A">
+      <div class="card-header">
+        <div>
+          <div class="bill-id" style="color:#4090D0">Bank Bill: ${esc(p.bankBillId)}</div>
+          <div class="cust-name">${p.linkedCustomer ? esc(p.linkedCustomer) : '<span style="color:var(--text3);font-size:13px">Personal / own gold</span>'}</div>
+        </div>
+        <div style="font-family:var(--mono);font-size:15px;font-weight:500;color:#4090D0">${fmtMoneyFull(p.bankAmount)}</div>
+      </div>
+      <div class="divider"></div>
+      <div class="field-grid">
+        <div><div class="field-k">Pawn bill ID</div><div class="field-v" style="font-family:var(--mono)">${esc(p.pawnBillId)||'—'}</div></div>
+        <div><div class="field-k">Date pledged</div><div class="field-v">${fmtDate(p.date)}</div></div>
+        <div><div class="field-k">Pawn amount</div><div class="field-v money">${pawnAmt ? fmtMoneyFull(pawnAmt) : '—'}</div></div>
+        <div><div class="field-k">Your margin</div><div class="field-v" style="color:${margin>=0?'var(--green)':'var(--red)'};font-family:var(--mono)">${margin>=0?'+':''}${fmtMoneyFull(margin)}</div></div>
+      </div>
+      <div class="card-actions">
+        ${pawnLoan ? `<div class="btn ghost" onclick="viewFromBank('${pawnLoan.firestoreId}')">
+          <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View pawn loan
+        </div>` : ''}
+        <div class="btn danger" onclick="deleteBankPledge('${p.pledgeId}','${esc(p.bankBillId)}')">
+          <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>Delete
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.viewFromBank = function(firestoreId) {
+  openDetail(firestoreId);
+}
+
+window.deleteBankPledge = function(pledgeId, bankBillId) {
+  showModal(`
+    <div class="modal-title">Delete bank pledge?</div>
+    <p style="font-size:13px;color:var(--text3);line-height:1.6">Bank Bill <strong style="color:var(--text)">${bankBillId}</strong> will be permanently removed. Cannot be undone.</p>
+    <div class="modal-actions">
+      <div class="btn ghost" style="flex:1" onclick="closeModal()">Cancel</div>
+      <div class="btn danger" style="flex:1" onclick="confirmDeleteBankPledge('${pledgeId}')">Delete</div>
+    </div>
+  `);
+}
+
+window.confirmDeleteBankPledge = async function(pledgeId) {
+  try {
+    await deleteDoc(doc(db, 'bankpledges', pledgeId));
+    closeModal(); toast('Bank pledge deleted');
+  } catch(e) { toast('Error deleting', 'error'); }
+}
+
+// ── DELETE AUDIT ──────────────────────────────────────────────────────────
+window.deleteAudit = function(auditId) {
+  showModal(`
+    <div class="modal-title">Delete this audit record?</div>
+    <p style="font-size:13px;color:var(--text3);line-height:1.6">This will permanently remove this audit session log. Cannot be undone.</p>
+    <div class="modal-actions">
+      <div class="btn ghost" style="flex:1" onclick="closeModal()">Cancel</div>
+      <div class="btn danger" style="flex:1" onclick="confirmDeleteAudit('${auditId}')">Delete</div>
+    </div>
+  `);
+}
+window.confirmDeleteAudit = async function(auditId) {
+  try {
+    await deleteDoc(doc(db, 'audits', auditId));
+    closeModal(); toast('Audit record deleted'); loadAuditHistory();
+  } catch(e) { toast('Error deleting audit', 'error'); }
+}
+
+// ── LANGUAGE TOGGLE ───────────────────────────────────────────────────────
+let currentLang = 'en';
+const T = {
+  en: { 'Dashboard':'Dashboard','New Loan':'New Loan','Due':'Due','Reports':'Reports','Search':'Search','Audit':'Audit',
+    'Vault summary':'Vault summary','Local Vault':'Local Vault','Bank Vault':'Bank Vault',
+    'Active loans':'Active loans','Disbursed':'Disbursed','Gold held':'Gold held',
+    'Action needed':'Action needed','Due this week':'Due this week','Overdue':'Overdue','Critical':'Critical',
+    'Recent loans':'Recent loans','View all bills':'View all bills','Portfolio overview':'Portfolio overview',
+    'New transaction':'New transaction','Manual receipt ID *':'Manual receipt ID *',
+    'Date of receipt *':'Date of receipt *','Phone number *':'Phone number *',
+    'Customer name *':'Customer name *','Items (photo + description)':'Items (photo + description)',
+    'Gold weight (g) *':'Gold weight (g) *','Metal type':'Metal type',
+    'Disbursed amount (₹) *':'Disbursed amount (₹) *','Vault location *':'Vault location *',
+    'Past audits':'Past audits','records':'records','outstanding':'outstanding','total':'total' },
+  hi: { 'Dashboard':'डैशबोर्ड','New Loan':'नया ऋण','Due':'देय','Reports':'रिपोर्ट','Search':'खोज','Audit':'ऑडिट',
+    'Vault summary':'तिजोरी सारांश','Local Vault':'स्थानीय तिजोरी','Bank Vault':'बैंक तिजोरी',
+    'Active loans':'सक्रिय ऋण','Disbursed':'वितरित','Gold held':'सोना जमा',
+    'Action needed':'कार्रवाई आवश्यक','Due this week':'इस सप्ताह देय','Overdue':'बकाया','Critical':'गंभीर',
+    'Recent loans':'हाल के ऋण','View all bills':'सभी बिल देखें','Portfolio overview':'पोर्टफोलियो अवलोकन',
+    'New transaction':'नया लेनदेन','Manual receipt ID *':'रसीद नंबर *',
+    'Date of receipt *':'रसीद की तारीख *','Phone number *':'फोन नंबर *',
+    'Customer name *':'ग्राहक का नाम *','Items (photo + description)':'वस्तुएं (फोटो + विवरण)',
+    'Gold weight (g) *':'सोने का वजन (ग्राम) *','Metal type':'धातु प्रकार',
+    'Disbursed amount (₹) *':'वितरित राशि (₹) *','Vault location *':'तिजोरी स्थान *',
+    'Past audits':'पिछले ऑडिट','records':'रिकॉर्ड','outstanding':'बकाया','total':'कुल' }
+};
+
+window.toggleLang = function() {
+  currentLang = currentLang === 'en' ? 'hi' : 'en';
+  const isHi = currentLang === 'hi';
+  document.getElementById('lang-en').style.color = isHi ? 'var(--text3)' : 'var(--gold)';
+  document.getElementById('lang-hi').style.color = isHi ? 'var(--gold)' : 'var(--text3)';
+
+  // Elements with data-en/data-hi set in HTML
+  document.querySelectorAll('[data-en][data-hi]').forEach(el => {
+    el.textContent = isHi ? el.dataset.hi : el.dataset.en;
+  });
+
+  // sec-labels
+  document.querySelectorAll('.sec-label').forEach(el => {
+    const en = el.dataset.en || el.textContent.trim();
+    if (!el.dataset.en) el.dataset.en = en;
+    el.textContent = (T[currentLang][en] || en);
+  });
+
+  // Form labels
+  document.querySelectorAll('label.lbl').forEach(el => {
+    const en = el.dataset.en || el.textContent.trim();
+    if (!el.dataset.en) el.dataset.en = en;
+    el.textContent = (T[currentLang][en] || en);
+  });
+
+  // Submit button
+  const sb = document.getElementById('submit-btn');
+  if (sb) { const svg = sb.querySelector('svg'); sb.textContent = isHi?'जमा करें और वितरित करें':'Submit & Disburse'; if(svg) sb.prepend(svg); }
+
+  // Audit start button
+  const ab = document.getElementById('audit-start-btn');
+  if (ab) { const svg = ab.querySelector('svg'); ab.textContent = isHi?'ऑडिट शुरू करें':'Start Audit'; if(svg) ab.prepend(svg); }
+
+  // Nav item text nodes
+  const navMap = {'nav-dashboard':['Dashboard','डैशबोर्ड'],'nav-newloan':['New Loan','नया ऋण'],
+    'nav-due':['Due','देय'],'nav-reports':['Reports','रिपोर्ट'],
+    'nav-search':['Search','खोज'],'nav-audit':['Audit','ऑडिट']};
+  Object.entries(navMap).forEach(([id,[en,hi]])=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    const txt=el.lastChild;
+    if(txt&&txt.nodeType===3) txt.textContent='\n      '+(isHi?hi:en)+'\n    ';
+  });
+
+  toast(isHi ? 'हिंदी में बदला गया ✓' : 'Switched to English ✓');
+}
+
+// ── METAL field in submitLoan ─────────────────────────────────────────────
+// Patch submitLoan to include metal type
+const _origSubmitLoan = window.submitLoan;
+window.submitLoan = async function() {
+  // metal field value is picked up inside the form before addDoc
+  await _origSubmitLoan();
+}
+
+document.getElementById('f-date').value = today();
+document.getElementById('f-date').max = today();
+if (document.getElementById('bk-date')) {
+  document.getElementById('bk-date').value = today();
+  document.getElementById('bk-date').max = today();
+}
+document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+
+setTimeout(()=>{
+  document.getElementById('loading-screen').style.display='none';
+  document.getElementById('app').style.display='flex';
+}, 1200);
+
+// Offline detection
+if (!navigator.onLine) setSyncStatus('offline');
+
+</script>
+</body>
+</html>
