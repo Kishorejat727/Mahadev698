@@ -769,7 +769,7 @@ textarea{resize:none;height:64px;line-height:1.4}
 <!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query, enableIndexedDbPersistence, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { getFirestore, collection, doc, addDoc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, query, enableIndexedDbPersistence, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
 
 const firebaseConfig = {
@@ -898,7 +898,21 @@ onSnapshot(q, (snapshot) => {
   const activeScreen = document.querySelector('.screen.active');
   if (activeScreen && activeScreen.id === 'screen-due') renderDueList();
   if (activeScreen && activeScreen.id === 'screen-search') doSearch();
-  if (activeScreen && activeScreen.id === 'screen-audit') { refreshAuditSummary(); if(auditActive) renderAuditList(); }
+  if (activeScreen && activeScreen.id === 'screen-audit') {
+    refreshAuditSummary();
+    if (auditActive) {
+      renderAuditList();
+    } else {
+      // Check if there's an unfinished draft — highlight Start button
+      loadAuditDraft().then(draft => {
+        const btn = document.getElementById('audit-start-btn');
+        if (draft && draft.verifiedIds && draft.verifiedIds.length > 0 && btn) {
+          btn.innerHTML = btn.innerHTML.replace(/Start Audit|Continue Audit/, 'Continue Audit');
+          btn.style.background = '#1A4A2A';
+        }
+      });
+    }
+  }
   if (activeScreen && activeScreen.id === 'screen-reports') renderReports();
   if (activeScreen && activeScreen.id === 'screen-bank') { refreshBankSummary(); renderBankList(); }
 }, (err) => {
@@ -1475,6 +1489,32 @@ let auditActive = false;
 let auditVerified = {}; // firestoreId -> true
 let auditFilter = 'all';
 let auditsCol = collection(db, 'audits');
+const AUDIT_DRAFT_ID = 'current_draft';
+
+// Save in-progress audit to Firestore so it survives app restarts
+async function saveAuditDraft() {
+  try {
+    await setDoc(doc(db, 'audits', AUDIT_DRAFT_ID), {
+      isDraft: true,
+      verifiedIds: Object.keys(auditVerified).filter(id => auditVerified[id]),
+      savedAt: Date.now()
+    });
+  } catch(e) { console.warn('Draft save failed:', e); }
+}
+
+async function loadAuditDraft() {
+  try {
+    const snap = await getDoc(doc(db, 'audits', AUDIT_DRAFT_ID));
+    if (snap.exists() && snap.data().isDraft) {
+      return snap.data();
+    }
+  } catch(e) { console.warn('Draft load failed:', e); }
+  return null;
+}
+
+async function clearAuditDraft() {
+  try { await deleteDoc(doc(db, 'audits', AUDIT_DRAFT_ID)); } catch(e) {}
+}
 
 window.setAuditFilter = function(f) {
   auditFilter = f;
@@ -1586,123 +1626,178 @@ function auditItemRow(l) {
 window.toggleVerify = function(firestoreId) {
   auditVerified[firestoreId] = !auditVerified[firestoreId];
   updateAuditProgress();
-  // Update just this item's class in-place without re-rendering whole list
+  // Update this item's class in-place
   const loan = allLoans.find(l => l.firestoreId === firestoreId);
   const v    = (loan && loan.vault) || 'local';
   const el   = document.getElementById('aitem-' + firestoreId);
   if (el) {
     if (auditVerified[firestoreId]) {
+      el.classList.remove('verified-local', 'verified-bank');
       el.classList.add(v === 'local' ? 'verified-local' : 'verified-bank');
     } else {
       el.classList.remove('verified-local', 'verified-bank');
     }
-    const check = el.querySelector('.audit-check');
-    if (check) check.style.transition = 'all .15s';
   }
-  // If on a filter tab (not all), re-render so item moves to correct section
+  // Re-render if on a filter tab so item moves to correct section
   if (auditFilter !== 'all') renderAuditList();
+  // Persist progress to Firestore
+  saveAuditDraft();
 }
 
-window.startAudit = function() {
-  auditActive   = true;
+window.startAudit = async function() {
+  // Check for existing draft
+  const draft = await loadAuditDraft();
+  if (draft && draft.verifiedIds && draft.verifiedIds.length > 0) {
+    const savedAt = draft.savedAt ? new Date(draft.savedAt).toLocaleString('en-IN') : 'earlier';
+    showModal(`
+      <div class="modal-title">Resume previous audit?</div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:4px">
+        You have an unfinished audit saved at <strong style="color:var(--text)">${savedAt}</strong>
+        with <strong style="color:var(--green)">${draft.verifiedIds.length} items</strong> already verified.
+      </p>
+      <div class="modal-actions" style="flex-direction:column;gap:8px">
+        <div class="btn primary" style="flex:none;width:100%;padding:12px" onclick="closeModal();resumeAudit(${JSON.stringify(draft.verifiedIds).replace(/"/g,'&quot;')})">
+          ↩ Continue where I left off
+        </div>
+        <div class="btn danger" style="flex:none;width:100%;padding:12px" onclick="closeModal();freshAudit()">
+          ✕ Discard and start fresh
+        </div>
+        <div class="btn ghost" style="flex:none;width:100%;padding:10px" onclick="closeModal()">Cancel</div>
+      </div>
+    `);
+    return;
+  }
+  freshAudit();
+}
+
+window.resumeAudit = function(verifiedIds) {
+  auditVerified = {};
+  verifiedIds.forEach(id => { auditVerified[id] = true; });
+  auditFilter = 'all';
+  activateAuditUI();
+  toast(`Resumed — ${verifiedIds.length} items already verified`);
+}
+
+window.freshAudit = async function() {
+  await clearAuditDraft();
   auditVerified = {};
   auditFilter   = 'all';
-  document.getElementById('audit-start-btn').style.display   = 'none';
-  document.getElementById('audit-end-btn').style.display     = 'flex';
+  activateAuditUI();
+  toast('Audit started — tap ✓ to mark each item verified');
+}
+
+function activateAuditUI() {
+  auditActive = true;
+  document.getElementById('audit-start-btn').style.display    = 'none';
+  document.getElementById('audit-end-btn').style.display      = 'flex';
   document.getElementById('audit-progress-wrap').style.display = 'block';
-  document.getElementById('audit-filter-tabs').style.display = 'flex';
+  document.getElementById('audit-filter-tabs').style.display  = 'flex';
   document.getElementById('audit-history-label').style.display = 'none';
-  document.getElementById('audit-history').style.display     = 'none';
-  // Reset filter tab highlight
+  document.getElementById('audit-history').style.display      = 'none';
   ['all','unveri','verified','local','bank'].forEach(id => {
     const el = document.getElementById('aft-' + id);
     if (el) el.classList.toggle('active', id === 'all');
   });
   updateAuditProgress();
   renderAuditList();
-  toast('Audit started — tap ✓ to mark each item verified');
 }
 
 window.endAudit = async function() {
-  const active = allLoans.filter(l=>l.status==='ACTIVE');
-  const total = active.length;
-  const verifiedIds = Object.keys(auditVerified).filter(id=>auditVerified[id]);
-  const verified = verifiedIds.length;
-  const missing = active.filter(l=>!auditVerified[l.firestoreId]);
-  const localCount = active.filter(l=>!l.vault||l.vault==='local').length;
-  const bankCount  = active.filter(l=>l.vault==='bank').length;
-  const localGold  = active.filter(l=>!l.vault||l.vault==='local').reduce((s,l)=>s+Number(l.weight),0);
-  const bankGold   = active.filter(l=>l.vault==='bank').reduce((s,l)=>s+Number(l.weight),0);
-
-  const missingList = missing.slice(0,5).map(l=>`• ${l.receiptId} — ${l.name} (${Number(l.weight).toFixed(2)}g)`).join('<br>');
+  const active      = allLoans.filter(l => l.status === 'ACTIVE');
+  const total       = active.length;
+  const verifiedIds = Object.keys(auditVerified).filter(id => auditVerified[id]);
+  const verified    = verifiedIds.length;
+  const missing     = active.filter(l => !auditVerified[l.firestoreId]);
+  const localCount  = active.filter(l => !l.vault || l.vault === 'local').length;
+  const bankCount   = active.filter(l => l.vault === 'bank').length;
+  const localGold   = active.filter(l => !l.vault || l.vault === 'local').reduce((s,l) => s + Number(l.weight), 0);
+  const bankGold    = active.filter(l => l.vault === 'bank').reduce((s,l) => s + Number(l.weight), 0);
+  const pct         = total === 0 ? 0 : Math.round(verified / total * 100);
+  const isComplete  = verified === total && total > 0;
+  const missingList = missing.slice(0,5).map(l => `• ${l.receiptId} — ${l.name} (${Number(l.weight).toFixed(2)}g)`).join('<br>');
 
   showModal(`
-    <div class="modal-title">Audit Complete</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;text-align:center">
+    <div class="modal-title">${isComplete ? '✓ Audit Complete' : `Audit — ${pct}% done`}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;text-align:center">
       <div style="background:var(--card);border-radius:var(--r);padding:10px;border:1px solid var(--border)">
         <div style="font-family:var(--mono);font-size:22px;color:var(--green)">${verified}</div>
         <div style="font-size:10px;color:var(--text3)">Verified</div>
       </div>
       <div style="background:var(--card);border-radius:var(--r);padding:10px;border:1px solid var(--border)">
-        <div style="font-family:var(--mono);font-size:22px;color:var(--red)">${total-verified}</div>
-        <div style="font-size:10px;color:var(--text3)">Unverified</div>
+        <div style="font-family:var(--mono);font-size:22px;color:var(--amber)">${total - verified}</div>
+        <div style="font-size:10px;color:var(--text3)">Remaining</div>
       </div>
       <div style="background:var(--card);border-radius:var(--r);padding:10px;border:1px solid var(--border)">
         <div style="font-family:var(--mono);font-size:22px;color:var(--gold)">${total}</div>
         <div style="font-size:10px;color:var(--text3)">Total</div>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
       <div style="background:#0A1A2A;border:1px solid #1A4A7A;border-radius:var(--r);padding:10px">
         <div style="font-size:10px;color:#60A8E0;margin-bottom:4px">🔒 LOCAL VAULT</div>
-        <div style="font-family:var(--mono);font-size:15px;color:var(--text)">${localCount} items</div>
-        <div style="font-size:11px;color:var(--text3)">${localGold.toFixed(2)} g</div>
+        <div style="font-family:var(--mono);font-size:15px;color:var(--text)">${localCount} items · ${localGold.toFixed(2)}g</div>
       </div>
       <div style="background:#1A0A2A;border:1px solid #5A1A8A;border-radius:var(--r);padding:10px">
         <div style="font-size:10px;color:#C060E0;margin-bottom:4px">🏦 BANK VAULT</div>
-        <div style="font-family:var(--mono);font-size:15px;color:var(--text)">${bankCount} items</div>
-        <div style="font-size:11px;color:var(--text3)">${bankGold.toFixed(2)} g</div>
+        <div style="font-family:var(--mono);font-size:15px;color:var(--text)">${bankCount} items · ${bankGold.toFixed(2)}g</div>
       </div>
     </div>
-    ${missing.length>0?`<div style="background:#1A0000;border:1px solid #5A1010;border-radius:var(--r);padding:10px;margin-bottom:16px">
-      <div style="font-size:11px;color:var(--red);font-weight:600;margin-bottom:6px">⚠ ${missing.length} item(s) not physically verified</div>
-      <div style="font-size:12px;color:var(--text2);line-height:1.8">${missingList}${missing.length>5?`<br>…and ${missing.length-5} more`:''}</div>
-    </div>`:'<div style="background:#081A0F;border:1px solid #1A5030;border-radius:var(--r);padding:10px;margin-bottom:16px;font-size:13px;color:var(--green)">✓ All items physically verified</div>'}
-    <div class="modal-actions">
-      <div class="btn ghost" onclick="cancelEndAudit()">Continue audit</div>
-      <div class="btn primary" onclick="saveAudit(${total},${verified},${total-verified},${localCount},${bankCount},'${localGold.toFixed(2)}','${bankGold.toFixed(2)}')">Save &amp; Close</div>
+    ${!isComplete ? `<div style="background:#1C1000;border:1px solid #5A2A00;border-radius:var(--r);padding:10px;margin-bottom:14px">
+      <div style="font-size:11px;color:var(--amber);font-weight:600;margin-bottom:5px">⬤ ${missing.length} item(s) not yet verified</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.8">${missingList}${missing.length > 5 ? `<br>…and ${missing.length - 5} more` : ''}</div>
+    </div>` : `<div style="background:#081A0F;border:1px solid #1A5030;border-radius:var(--r);padding:10px;margin-bottom:14px;font-size:13px;color:var(--green)">
+      ✓ All items physically verified
+    </div>`}
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="btn ghost" onclick="closeModal()" style="padding:11px">← Back to audit</div>
+      ${!isComplete ? `<div class="btn primary" onclick="saveAndPause()" style="padding:11px;background:#1A4A2A;border-color:#2A6A3A">💾 Save progress & continue later</div>` : ''}
+      <div class="btn primary" onclick="saveAudit(${total},${verified},${total - verified},${localCount},${bankCount},'${localGold.toFixed(2)}','${bankGold.toFixed(2)}')" style="padding:11px">
+        ${isComplete ? '✓ Complete & close audit' : '⚠ Mark partial & close'}
+      </div>
     </div>
   `);
 }
 
-window.cancelEndAudit = function() {
+window.cancelEndAudit = function() { closeModal(); }
+
+// Save progress, keep draft alive, close UI — user can resume later
+window.saveAndPause = async function() {
+  await saveAuditDraft(); // ensure latest ticks are saved
   closeModal();
+  deactivateAuditUI(false); // false = don't clear auditVerified from draft
+  toast('Progress saved — tap Start Audit to continue', 'success');
 }
 
-window.saveAudit = async function(total,verified,missing,localCount,bankCount,localGold,bankGold) {
+// Complete and close — save to history, clear draft
+window.saveAudit = async function(total, verified, missing, localCount, bankCount, localGold, bankGold) {
   try {
-    // Save verified bill IDs list so history shows which were ticked
-    const verifiedIds = Object.keys(auditVerified).filter(id=>auditVerified[id]);
+    const verifiedIds = Object.keys(auditVerified).filter(id => auditVerified[id]);
     await addDoc(auditsCol, {
-      date: today(),
-      timestamp: Date.now(), // use epoch number, not serverTimestamp, to avoid orderBy issues
+      date: today(), timestamp: Date.now(),
       total, verified, missing, localCount, bankCount,
       localGold: parseFloat(localGold), bankGold: parseFloat(bankGold),
       verifiedIds
     });
-    toast('Audit saved successfully','success');
-  } catch(e) { console.error(e); toast('Error saving audit','error'); }
+    await clearAuditDraft();
+    toast('Audit completed & saved', 'success');
+  } catch(e) { console.error(e); toast('Error saving audit', 'error'); }
   closeModal();
-  auditActive = false;
-  auditVerified = {};
-  document.getElementById('audit-start-btn').style.display   = 'flex';
-  document.getElementById('audit-end-btn').style.display     = 'none';
-  document.getElementById('audit-progress-wrap').style.display = 'none';
-  document.getElementById('audit-filter-tabs').style.display = 'none';
-  document.getElementById('audit-history-label').style.display = 'block';
-  document.getElementById('audit-history').style.display     = 'block';
-  document.getElementById('audit-list').innerHTML = '';
+  deactivateAuditUI(true);
   loadAuditHistory();
+}
+
+function deactivateAuditUI(clearVerified) {
+  auditActive = false;
+  if (clearVerified) auditVerified = {};
+  document.getElementById('audit-start-btn').style.display    = 'flex';
+  document.getElementById('audit-end-btn').style.display      = 'none';
+  document.getElementById('audit-progress-wrap').style.display = 'none';
+  document.getElementById('audit-filter-tabs').style.display  = 'none';
+  document.getElementById('audit-history-label').style.display = 'block';
+  document.getElementById('audit-history').style.display      = 'block';
+  document.getElementById('audit-list').innerHTML             = '';
+  const btn = document.getElementById('audit-start-btn');
+  if (btn) btn.style.background = '';
 }
 
 async function loadAuditHistory() {
