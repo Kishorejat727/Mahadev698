@@ -344,6 +344,50 @@ textarea{resize:none;height:64px;line-height:1.4}
   <div class="loading-bar"><div class="loading-bar-fill"></div></div>
 </div>
 
+<!-- LOGIN SCREEN -->
+<div id="login-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:500;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;max-width:480px;margin:0 auto">
+  <div style="width:100%;max-width:320px">
+    <!-- Logo -->
+    <div style="text-align:center;margin-bottom:36px">
+      <div style="width:56px;height:56px;border-radius:14px;background:var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
+        <svg width="30" height="30" viewBox="0 0 32 32" fill="none">
+          <rect x="14" y="9" width="2" height="14" rx="1" fill="#1A1208"/>
+          <path d="M9 7.5Q9 5 11 5Q13 5 13 7.5L12 9L10 9Z" fill="#1A1208"/>
+          <path d="M23 7.5Q23 5 21 5Q19 5 19 7.5L20 9L22 9Z" fill="#1A1208"/>
+          <rect x="8" y="10" width="16" height="1.8" rx="0.9" fill="#1A1208"/>
+          <path d="M13.5 23Q13.5 25 15 25Q16.5 25 16.5 23L16 21.5L14 21.5Z" fill="#1A1208"/>
+          <path d="M14 14Q11.5 13 11.5 11" stroke="#1A1208" stroke-width="1.1" stroke-linecap="round"/>
+          <path d="M18 14Q20.5 13 20.5 11" stroke="#1A1208" stroke-width="1.1" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div style="font-size:22px;font-weight:600;color:var(--text);letter-spacing:.02em">Mahadev Pawn</div>
+      <div style="font-size:11px;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;margin-top:4px">Gold Lending Suite</div>
+    </div>
+    <!-- Form -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="input-group">
+        <label class="lbl">Email address</label>
+        <input type="email" id="login-email" placeholder="Enter your email" inputmode="email" autocomplete="username" autocorrect="off" autocapitalize="none" onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()">
+      </div>
+      <div class="input-group">
+        <label class="lbl">Password</label>
+        <div style="position:relative">
+          <input type="password" id="login-pass" placeholder="Enter your password" autocomplete="current-password" style="padding-right:44px" onkeydown="if(event.key==='Enter')doLogin()">
+          <div onclick="togglePassVis()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3)">
+            <svg id="eye-icon" viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+        </div>
+      </div>
+      <div id="login-error" style="display:none;font-size:12px;color:var(--red);background:#1A0000;border:1px solid #5A1010;border-radius:var(--r);padding:9px 12px;line-height:1.5"></div>
+      <button id="login-btn" onclick="doLogin()" style="background:var(--gold);border:none;border-radius:var(--r);padding:14px;font-size:15px;font-weight:600;color:#1A1208;width:100%;cursor:pointer;font-family:var(--font);letter-spacing:.02em;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s">
+        <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:#1A1208;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        Sign in
+      </button>
+    </div>
+    <div style="text-align:center;margin-top:24px;font-size:11px;color:var(--text3)">Access restricted to authorised users only</div>
+  </div>
+</div>
+
 <div id="app" style="display:none">
   <div id="sync-banner">
     <div class="sync-dot"></div>
@@ -383,6 +427,9 @@ textarea{resize:none;height:64px;line-height:1.4}
         <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
       </div>
       <div id="topbar-date"></div>
+      <div onclick="doSignOut()" title="Sign out" style="cursor:pointer;padding:4px 6px;border-radius:var(--r);display:flex;align-items:center" title="Sign out">
+        <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:var(--text3);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </div>
     </div>
   </div>
   <div class="gold-rule"></div>
@@ -770,6 +817,7 @@ textarea{resize:none;height:64px;line-height:1.4}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import { getFirestore, collection, doc, addDoc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, query, enableIndexedDbPersistence, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 
 
 const firebaseConfig = {
@@ -783,7 +831,8 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const db  = getFirestore(app);
+const auth = getAuth(app);
 
 
 // Enable offline persistence
@@ -2714,21 +2763,105 @@ window.submitLoan = async function() {
   await _origSubmitLoan();
 }
 
-document.getElementById('f-date').value = today();
-document.getElementById('f-date').max = today();
-if (document.getElementById('bk-date')) {
-  document.getElementById('bk-date').value = today();
-  document.getElementById('bk-date').max = today();
+// ── AUTH FUNCTIONS ────────────────────────────────────────────────────────
+window.doLogin = async function() {
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-pass').value;
+  const errEl    = document.getElementById('login-error');
+  const btn      = document.getElementById('login-btn');
+
+  errEl.style.display = 'none';
+  if (!email || !password) {
+    errEl.textContent = 'Please enter your email and password.';
+    errEl.style.display = 'block'; return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Signing in…';
+
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+  } catch(e) {
+    const msgs = {
+      'auth/user-not-found':        'No account found with this email.',
+      'auth/wrong-password':        'Incorrect password. Please try again.',
+      'auth/invalid-email':         'Please enter a valid email address.',
+      'auth/too-many-requests':     'Too many failed attempts. Please try again later.',
+      'auth/invalid-credential':    'Incorrect email or password.',
+      'auth/network-request-failed':'Network error. Check your internet connection.',
+    };
+    errEl.textContent = msgs[e.code] || ('Sign in failed: ' + e.code);
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.innerHTML = `<svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:#1A1208;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>Sign in`;
+  }
 }
-document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
 
-setTimeout(()=>{
-  document.getElementById('loading-screen').style.display='none';
-  document.getElementById('app').style.display='flex';
-}, 1200);
+window.doSignOut = function() {
+  showModal(`
+    <div class="modal-title">Sign out?</div>
+    <p style="font-size:13px;color:var(--text3);line-height:1.6">You will be returned to the login screen.</p>
+    <div class="modal-actions">
+      <div class="btn ghost" style="flex:1" onclick="closeModal()">Cancel</div>
+      <div class="btn danger" style="flex:1" onclick="confirmSignOut()">Sign out</div>
+    </div>
+  `);
+}
 
-// Offline detection
-if (!navigator.onLine) setSyncStatus('offline');
+window.confirmSignOut = async function() {
+  closeModal();
+  await signOut(auth);
+}
+
+window.togglePassVis = function() {
+  const input = document.getElementById('login-pass');
+  const icon  = document.getElementById('eye-icon');
+  if (input.type === 'password') {
+    input.type = 'text';
+    icon.innerHTML = `<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>`;
+  } else {
+    input.type = 'password';
+    icon.innerHTML = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
+  }
+}
+
+// ── AUTH STATE GATE ───────────────────────────────────────────────────────
+onAuthStateChanged(auth, (user) => {
+  const loadingEl = document.getElementById('loading-screen');
+  const loginEl   = document.getElementById('login-screen');
+  const appEl     = document.getElementById('app');
+
+  if (user) {
+    // Signed in — show app
+    loginEl.style.display = 'none';
+    loadingEl.style.display = 'none';
+    appEl.style.display = 'flex';
+
+    document.getElementById('topbar-date').textContent =
+      new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+    document.getElementById('f-date').value = today();
+    document.getElementById('f-date').max   = today();
+    const bkDate = document.getElementById('bk-date');
+    if (bkDate) { bkDate.value = today(); bkDate.max = today(); }
+    if (!navigator.onLine) setSyncStatus('offline');
+  } else {
+    // Signed out — show login
+    loadingEl.style.display = 'none';
+    appEl.style.display     = 'none';
+    loginEl.style.display   = 'flex';
+    // Clear sensitive data from memory
+    allLoans = []; allBankPledges = [];
+    auditVerified = {}; auditActive = false; capturedPhoto = null;
+    // Reset login form
+    const btn = document.getElementById('login-btn');
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:#1A1208;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>Sign in`;
+    }
+    const errEl = document.getElementById('login-error');
+    if (errEl) errEl.style.display = 'none';
+  }
+});
 
 </script>
 </body>
