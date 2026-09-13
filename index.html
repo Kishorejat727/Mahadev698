@@ -913,15 +913,25 @@ function emptyState(msg) {
 
 // ── SYNC STATUS UI ─────────────────────────────────────────────────────────
 function setSyncStatus(status) {
-  const icon = document.getElementById('sync-icon');
+  const icon   = document.getElementById('sync-icon');
   const banner = document.getElementById('sync-banner');
+  if (!icon || !banner) return;
   icon.className = status;
+  // Only show banner for genuine offline — not transient states
   if (status === 'offline') banner.classList.add('show');
   else banner.classList.remove('show');
 }
 
-window.addEventListener('online',  () => setSyncStatus('syncing'));
-window.addEventListener('offline', () => setSyncStatus('offline'));
+// Use a small delay so transient false-offline on page load doesn't flash the banner
+window.addEventListener('online',  () => {
+  setSyncStatus('syncing');
+  setTimeout(() => { if (navigator.onLine) setSyncStatus('synced'); }, 2000);
+});
+window.addEventListener('offline', () => {
+  // Wait 5s and double-check before showing banner — avoids false positives
+  // during auth token refresh, Firebase reconnection, or brief network blips
+  setTimeout(() => { if (!navigator.onLine) setSyncStatus('offline'); }, 5000);
+});
 
 // ── REAL-TIME LISTENER ─────────────────────────────────────────────────────
 const loansCol = collection(db, 'loans');
@@ -965,8 +975,12 @@ onSnapshot(q, (snapshot) => {
   if (activeScreen && activeScreen.id === 'screen-reports') renderReports();
   if (activeScreen && activeScreen.id === 'screen-bank') { refreshBankSummary(); renderBankList(); }
 }, (err) => {
-  console.error(err);
-  setSyncStatus('offline');
+  console.warn('Firestore snapshot error:', err.code);
+  // Only show offline banner for genuine network unavailability
+  // Ignore permission-denied (auth token still propagating) and other transient errors
+  if (err.code === 'unavailable' || err.code === 'failed-precondition') {
+    setSyncStatus('offline');
+  }
 });
 
 // ── IMAGE COMPRESSION ──────────────────────────────────────────────────────
@@ -1356,7 +1370,7 @@ window.saveEdit = async function(firestoreId) {
     console.error('saveEdit error:', e);
     if (e.code === 'permission-denied') toast('Permission denied — check Firestore rules', 'error');
     else toast('Error saving — check connection', 'error');
-    setSyncStatus('offline');
+    if (e.code === 'unavailable') setSyncStatus('offline');
   }
 }
 
@@ -1380,8 +1394,8 @@ window.clearLoan = async function(firestoreId) {
     if (e.code === 'permission-denied') {
       toast('Permission denied — update Firestore rules','error');
     } else {
-      toast('Error saving — check your internet connection','error');
-      setSyncStatus('offline');
+      toast('Error saving — check connection','error');
+      if (e.code === 'unavailable') setSyncStatus('offline');
     }
   }
 }
@@ -1496,7 +1510,7 @@ window.submitLoan = async function() {
   } catch(e) {
     console.error(e);
     toast('Error saving loan — check connection','error');
-    setSyncStatus('offline');
+    if (e.code === 'unavailable') setSyncStatus('offline');
   } finally {
     btn.disabled=false;
     btn.innerHTML=`<svg viewBox="0 0 24 24" style="width:19px;height:19px;stroke:#1A1208;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Submit &amp; Disburse`;
@@ -1522,7 +1536,7 @@ window.changeVault = async function(firestoreId, vault) {
   } catch(e) {
     console.error(e);
     toast('Error updating vault location','error');
-    setSyncStatus('offline');
+    if (e.code === 'unavailable') setSyncStatus('offline');
   }
 }
 
@@ -2083,7 +2097,7 @@ window.confirmDeleteFromBills = async function(firestoreId) {
     console.error(e);
     if (e.code === 'permission-denied') toast('Permission denied — check Firestore rules', 'error');
     else toast('Error deleting — check connection', 'error');
-    setSyncStatus('offline');
+    if (e.code === 'unavailable') setSyncStatus('offline');
   }
 }
 
@@ -2586,7 +2600,7 @@ window.addBankPledge = async function() {
   } catch(e) {
     console.error(e);
     toast('Error saving — check connection', 'error');
-    setSyncStatus('offline');
+    if (e.code === 'unavailable') setSyncStatus('offline');
   }
 }
 
@@ -2843,7 +2857,7 @@ onAuthStateChanged(auth, (user) => {
     document.getElementById('f-date').max   = today();
     const bkDate = document.getElementById('bk-date');
     if (bkDate) { bkDate.value = today(); bkDate.max = today(); }
-    if (!navigator.onLine) setSyncStatus('offline');
+    // Sync status is managed by the online/offline event listeners only
   } else {
     // Signed out — show login
     loadingEl.style.display = 'none';
