@@ -1156,14 +1156,15 @@ window.doSearch = function() {
   if (!q) { cont.innerHTML = ''; return; }
   const matched = allLoans.filter(l => l.name.toLowerCase().includes(q) || l.phone.includes(q) || String(l.receiptId).includes(q));
   if (!matched.length) { cont.innerHTML = emptyState(`No records found for "${esc(q)}".`); return; }
-  const byPhone = {};
+  const byName = {};
   matched.forEach(l => {
-    const phone = (l.phone||'').trim();
-    if (!phone) return;
-    if (!byPhone[phone]) byPhone[phone] = {name:l.name, phone, loans:[]};
-    byPhone[phone].loans.push(l);
+    const name = (l.name||'').trim();
+    if (!name) return;
+    const key = name.toLowerCase().replace(/\s+/g,' ');
+    if (!byName[key]) byName[key] = {name, phone: l.phone||'', loans:[]};
+    byName[key].loans.push(l);
   });
-  cont.innerHTML = Object.values(byPhone).map(cust => {
+  cont.innerHTML = Object.values(byName).map(cust => {
     const activeL = cust.loans.filter(l=>l.status==='ACTIVE');
     const exposure = activeL.reduce((s,l)=>s+(Number(l.amount)||0),0);
     const rows = cust.loans.map(l=>`
@@ -2295,13 +2296,12 @@ function buildMonthlyReport() {
 function buildCustomerReport() {
   const byKey = {};
   allLoans.forEach(l => {
-    const phone = (l.phone || '').trim();
-    const name  = (l.name  || '').trim();
-    if (!phone || !name) return; // skip incomplete records
-    // Group by phone; if same phone has different names, use the most recent name
-    if (!byKey[phone]) byKey[phone] = {name, phone, loans:[]};
-    else byKey[phone].name = name; // keep latest name for this phone
-    byKey[phone].loans.push(l);
+    const name = (l.name || '').trim();
+    if (!name) return; // skip records with no name
+    // Group by normalised name (lowercase, trimmed) — avoids 9999x phone duplicates
+    const key = name.toLowerCase().replace(/\s+/g,' ');
+    if (!byKey[key]) byKey[key] = {name, phone: l.phone||'', loans:[]};
+    byKey[key].loans.push(l);
   });
   const customers = Object.values(byKey).map(c => {
     const active   = c.loans.filter(l => l.status === 'ACTIVE');
