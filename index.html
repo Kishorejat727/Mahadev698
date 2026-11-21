@@ -529,6 +529,10 @@ textarea{resize:none;height:64px;line-height:1.4}
             <div class="error-msg" id="err-amount"></div>
           </div>
           <div class="input-group">
+            <label class="lbl">Interest rate (% per month)</label>
+            <input type="number" id="f-rate" value="2" step="0.05" min="0" inputmode="decimal" placeholder="e.g. 2" onchange="try{localStorage.setItem('mp_rate',this.value)}catch(e){}">
+          </div>
+          <div class="input-group">
             <label class="lbl">Vault location *</label>
             <div class="vault-toggle">
               <div class="vault-opt local active" id="vault-opt-local" onclick="selectVault('local')">
@@ -631,6 +635,10 @@ textarea{resize:none;height:64px;line-height:1.4}
     <!-- REPORTS -->
     <div id="screen-reports" class="screen">
       <div class="screen-body">
+        <div style="display:flex;gap:8px">
+          <div class="btn ghost" onclick="openExportModal()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export CSV</div>
+          <div class="btn ghost" onclick="openDefaultRateModal()"><svg viewBox="0 0 24 24"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>Set rate on old loans</div>
+        </div>
         <div class="rpt-tabs">
           <div class="rpt-tab active" onclick="switchRptTab('monthly')" id="rtab-monthly">Monthly</div>
           <div class="rpt-tab" onclick="switchRptTab('customers')" id="rtab-customers">Customers</div>
@@ -665,17 +673,49 @@ textarea{resize:none;height:64px;line-height:1.4}
         <div class="sec-label">New bank pledge</div>
         <div class="card" style="border-color:#1A3A6A">
           <div class="form-section">
-            <div class="input-row">
+            <!-- Pledge type toggle -->
+            <div class="input-group">
+              <label class="lbl">Pledge type</label>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <div id="bk-type-customer" onclick="setBkType('customer')" style="padding:10px;border-radius:var(--r);border:1px solid #1A4A8A;background:#0A1A2A;text-align:center;cursor:pointer;transition:all .15s">
+                  <div style="font-size:13px;font-weight:500;color:#60A8E0">👤 Customer gold</div>
+                  <div style="font-size:10px;color:var(--text3);margin-top:3px">Linked to pawn bill</div>
+                </div>
+                <div id="bk-type-own" onclick="setBkType('own')" style="padding:10px;border-radius:var(--r);border:1px solid var(--border);background:var(--surface);text-align:center;cursor:pointer;transition:all .15s">
+                  <div style="font-size:13px;font-weight:500;color:var(--text2)">🏺 Own gold</div>
+                  <div style="font-size:10px;color:var(--text3);margin-top:3px">Personal ornaments</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Customer gold section — pawn bill ID -->
+            <div id="bk-customer-section">
               <div class="input-group">
                 <label class="lbl">Pawn bill ID</label>
                 <input type="text" id="bk-pawn-id" placeholder="e.g. 6155" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'');previewPawnBill()" autocomplete="off">
                 <div class="error-msg" id="bk-err-pawn"></div>
               </div>
-              <div class="input-group">
-                <label class="lbl">Bank loan bill ID</label>
-                <input type="text" id="bk-bank-id" placeholder="Bank ref no." autocomplete="off" autocorrect="off">
-                <div class="error-msg" id="bk-err-bankid"></div>
+              <!-- Linked pawn loan preview -->
+              <div id="bk-pawn-preview" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;margin-top:4px">
+                <div style="font-size:10px;color:var(--text3);margin-bottom:4px">Linked pawn loan</div>
+                <div id="bk-pawn-preview-content"></div>
               </div>
+            </div>
+
+            <!-- Own gold section — item description -->
+            <div id="bk-own-section" style="display:none">
+              <div class="input-group">
+                <label class="lbl">Item description</label>
+                <textarea id="bk-own-items" placeholder="e.g. 2 Bangles, 1 Chain, 1 Necklace" style="height:56px"></textarea>
+                <div class="error-msg" id="bk-err-items"></div>
+              </div>
+            </div>
+
+            <!-- Common fields -->
+            <div class="input-group">
+              <label class="lbl">Bank loan bill ID</label>
+              <input type="text" id="bk-bank-id" placeholder="Bank ref / account no." autocomplete="off" autocorrect="off">
+              <div class="error-msg" id="bk-err-bankid"></div>
             </div>
             <div class="input-row">
               <div class="input-group">
@@ -687,11 +727,6 @@ textarea{resize:none;height:64px;line-height:1.4}
                 <input type="number" id="bk-amount" placeholder="0" inputmode="numeric" min="1">
                 <div class="error-msg" id="bk-err-amount"></div>
               </div>
-            </div>
-            <!-- Linked pawn loan preview -->
-            <div id="bk-pawn-preview" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px">
-              <div style="font-size:10px;color:var(--text3);margin-bottom:4px">Linked pawn loan</div>
-              <div id="bk-pawn-preview-content"></div>
             </div>
           </div>
           <button class="submit-btn" style="margin-top:14px;background:#1A3A8A" onclick="addBankPledge()">
@@ -816,7 +851,7 @@ textarea{resize:none;height:64px;line-height:1.4}
 <!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-import { getFirestore, collection, doc, addDoc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, query, enableIndexedDbPersistence, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { getFirestore, collection, doc, addDoc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, query, arrayUnion, enableIndexedDbPersistence, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 
 
@@ -904,7 +939,9 @@ window.closeModal = function(e) {
 }
 
 function smsText(loan) {
-  return `Dear ${loan.name}, this is a friendly notification regarding your active Gold Loan Bill No: ${loan.receiptId}. The interest/principal payment for your loan issued on ${fmtDate(loan.date)} is due. Kindly visit our branch to clear your balances. - Mahadev Pawn`;
+  const _d = Number(loan.rate) > 0 ? calcDue(loan) : null;
+  const dueTxt = _d ? ` Amount due today: ₹${_d.total.toLocaleString('en-IN')} (principal ₹${_d.principal.toLocaleString('en-IN')} + interest ₹${_d.interestDue.toLocaleString('en-IN')}).` : '';
+  return `Dear ${loan.name}, this is a friendly notification regarding your active Gold Loan Bill No: ${loan.receiptId}. The interest/principal payment for your loan issued on ${fmtDate(loan.date)} is due.${dueTxt} Kindly visit our branch to clear your balances. - Mahadev Pawn`;
 }
 
 function emptyState(msg) {
@@ -1182,6 +1219,330 @@ window.doSearch = function() {
 }
 
 // ── DETAIL VIEW ────────────────────────────────────────────────────────────
+// ── INTEREST ENGINE ───────────────────────────────────────────────────────
+// Rate is % per month. A month is treated as 30 days.
+// 'days'   = pro-rata by exact days elapsed.
+// 'months' = the open period is rounded UP to whole months (minimum 1 month on a fresh loan).
+let interestMethod = 'days';
+try { interestMethod = localStorage.getItem('mp_imethod') || 'days'; } catch(e) {}
+
+function dayDiff(a, b) {
+  return Math.max(0, Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 86400000));
+}
+
+function calcDue(loan, asOf) {
+  asOf = asOf || today();
+  const rate = Number(loan.rate) || 0;
+  const pays = (loan.payments || []).filter(p => p && p.date).slice().sort((a, b) => a.date.localeCompare(b.date));
+  let principal = Number(loan.amount) || 0;
+  let cursor = loan.date, interest = 0, interestPaid = 0, principalPaid = 0;
+  const accrue = (from, to, bal, closing) => {
+    let d = dayDiff(from, to);
+    if (interestMethod === 'months' && closing) d = Math.max(from === loan.date ? 30 : 0, Math.ceil(d / 30) * 30);
+    return bal * (rate / 100) * d / 30;
+  };
+  pays.forEach(p => {
+    if (p.date > asOf) return;
+    interest += accrue(cursor, p.date, principal, false);
+    if (p.date > cursor) cursor = p.date;
+    if (p.type === 'principal') {
+      const amt = Math.min(Number(p.amount) || 0, principal);
+      principal -= amt; principalPaid += amt;
+    } else {
+      interestPaid += Number(p.amount) || 0;
+    }
+  });
+  interest += accrue(cursor, asOf, principal, true);
+  interest = Math.round(interest);
+  const interestDue = Math.max(0, interest - interestPaid);
+  return {
+    rate, principal: Math.round(principal), principalPaid, interest, interestPaid, interestDue,
+    total: Math.round(principal) + interestDue, days: dayDiff(loan.date, asOf)
+  };
+}
+
+function collectedIn(start, end) {
+  let sum = 0;
+  allLoans.forEach(l => {
+    if (l.status === 'RELEASED' && l.releaseDate && l.releaseDate >= start && l.releaseDate <= end) sum += Number(l.releaseAmount) || 0;
+    (l.payments || []).forEach(p => { if (p && p.date >= start && p.date <= end) sum += Number(p.amount) || 0; });
+  });
+  return sum;
+}
+
+function releaseHint(d) {
+  if (!d) return '';
+  if (!(d.rate > 0)) return 'No interest rate on this loan — enter the amount yourself, or add a rate with Edit.';
+  return `Auto-calculated: principal ₹${d.principal.toLocaleString('en-IN')} + interest ₹${d.interestDue.toLocaleString('en-IN')} (${d.days} days at ${d.rate}% per month). You can change it.`;
+}
+
+window.refreshReleaseSuggestion = function(id) {
+  const loan = allLoans.find(l => l.firestoreId === id);
+  if (!loan) return;
+  const d = calcDue(loan, document.getElementById('cl-date').value || today());
+  const amt = document.getElementById('cl-amount'), hint = document.getElementById('cl-hint');
+  if (d.rate > 0 && amt) amt.value = d.total;
+  if (hint) hint.textContent = releaseHint(d);
+}
+
+window.setInterestMethod = function(m) {
+  interestMethod = m;
+  try { localStorage.setItem('mp_imethod', m); } catch(e) {}
+  if (currentDetailId) openDetail(currentDetailId);
+}
+
+function interestCardHtml(loan, due) {
+  const id = loan.firestoreId;
+  const inr = n => '₹' + (Number(n) || 0).toLocaleString('en-IN');
+  const pays = (loan.payments || []).filter(p => p && p.date).slice().sort((a, b) => b.date.localeCompare(a.date));
+  const payRows = pays.map(p => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
+      <div>${fmtDate(p.date)} <span class="rpt-tag ${p.type === 'principal' ? 'amber' : 'green'}" style="margin-left:6px">${p.type === 'principal' ? 'Principal' : 'Interest'}</span></div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-family:var(--mono);color:var(--gold)">${inr(p.amount)}</span>
+        ${loan.status === 'ACTIVE' ? `<span onclick="deletePayment('${id}','${esc(p.id || '')}')" aria-label="Remove payment" style="cursor:pointer;color:var(--text3);font-size:14px;padding:2px 4px">✕</span>` : ''}
+      </div>
+    </div>`).join('');
+
+  if (loan.status !== 'ACTIVE') {
+    return pays.length ? `<div class="card"><div class="rpt-card-title">Payments received</div>${payRows}</div>` : '';
+  }
+  const rate = Number(loan.rate) || 0;
+  const body = rate > 0 ? `
+    <div class="field-grid">
+      <div><div class="field-k">Principal outstanding</div><div class="field-v money">${inr(due.principal)}</div></div>
+      <div><div class="field-k">Interest accrued · ${due.days}d</div><div class="field-v">${inr(due.interest)}</div></div>
+      <div><div class="field-k">Interest paid</div><div class="field-v">${inr(due.interestPaid)}</div></div>
+      <div><div class="field-k">Interest due</div><div class="field-v" style="color:var(--amber)">${inr(due.interestDue)}</div></div>
+    </div>
+    <div class="divider"></div>
+    <div style="display:flex;align-items:baseline;justify-content:space-between">
+      <span style="font-size:12px;color:var(--text2)">Total due today</span>
+      <span style="font-family:var(--mono);font-size:22px;font-weight:500;color:var(--gold)">${inr(due.total)}</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:12px">
+      <span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Interest by</span>
+      <div class="due-tabs" style="flex:1">
+        <div class="due-tab ${interestMethod === 'days' ? 'active' : ''}" onclick="setInterestMethod('days')">Days</div>
+        <div class="due-tab ${interestMethod === 'months' ? 'active' : ''}" onclick="setInterestMethod('months')">Full months</div>
+      </div>
+    </div>` : `<div style="font-size:12px;color:var(--text3);line-height:1.6">No interest rate is set on this loan. Tap <strong style="color:var(--text2)">Edit</strong> (top right) to add one and the app will work out interest and the release amount for you.</div>`;
+  return `<div class="card" style="border-color:#4A4200">
+    <div class="rpt-card-title"><span>Interest &amp; balance</span><span style="font-family:var(--mono);color:var(--gold);text-transform:none;letter-spacing:0">${rate > 0 ? rate + '% / month' : 'no rate'}</span></div>
+    ${body}
+    <div class="card-actions"><div class="btn ghost" onclick="openPaymentModal('${id}')"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Record payment</div></div>
+    ${payRows ? `<div style="margin-top:10px">${payRows}</div>` : ''}
+  </div>`;
+}
+
+// ── PAYMENTS ──────────────────────────────────────────────────────────────
+let payType = 'interest';
+
+window.openPaymentModal = function(id) {
+  const loan = allLoans.find(l => l.firestoreId === id);
+  if (!loan) return;
+  payType = 'interest';
+  const d = calcDue(loan);
+  showModal(`
+    <div class="modal-title">Record payment</div>
+    <div class="due-tabs" style="margin-bottom:12px">
+      <div id="pt-interest" class="due-tab active" onclick="setPayType('interest','${id}')">Interest</div>
+      <div id="pt-principal" class="due-tab" onclick="setPayType('principal','${id}')">Part of principal</div>
+    </div>
+    <div class="form-section">
+      <div class="input-group">
+        <label class="lbl">Amount received (₹)</label>
+        <input type="number" id="pay-amount" value="${d.interestDue || ''}" inputmode="numeric" min="1" placeholder="0">
+        <div class="error-msg" id="pay-err"></div>
+      </div>
+      <div class="input-group">
+        <label class="lbl">Date</label>
+        <input type="date" id="pay-date" value="${today()}" max="${today()}">
+      </div>
+    </div>
+    <div id="pay-hint" style="font-size:11px;color:var(--text3);margin-top:10px;line-height:1.5">${d.rate > 0 ? `Interest due today: ₹${d.interestDue.toLocaleString('en-IN')}` : 'Add an interest rate to this loan to see the amount due.'}</div>
+    <div class="modal-actions">
+      <div class="btn ghost" style="flex:1" onclick="closeModal()">Cancel</div>
+      <div class="btn primary" style="flex:1" onclick="savePayment('${id}')">Save payment</div>
+    </div>
+  `);
+}
+
+window.setPayType = function(t, id) {
+  payType = t;
+  document.getElementById('pt-interest').classList.toggle('active', t === 'interest');
+  document.getElementById('pt-principal').classList.toggle('active', t === 'principal');
+  const loan = allLoans.find(l => l.firestoreId === id);
+  if (!loan) return;
+  const d = calcDue(loan);
+  document.getElementById('pay-amount').value = t === 'interest' ? (d.interestDue || '') : '';
+  document.getElementById('pay-hint').textContent = t === 'interest'
+    ? (d.rate > 0 ? `Interest due today: ₹${d.interestDue.toLocaleString('en-IN')}` : 'Add an interest rate to this loan to see the amount due.')
+    : `Principal outstanding: ₹${d.principal.toLocaleString('en-IN')}. Interest after this payment is charged on the reduced balance.`;
+}
+
+window.savePayment = async function(id) {
+  const loan = allLoans.find(l => l.firestoreId === id);
+  if (!loan) return;
+  const amt  = Math.round(Number(document.getElementById('pay-amount').value));
+  const date = document.getElementById('pay-date').value || today();
+  const err  = document.getElementById('pay-err');
+  const fail = m => { err.textContent = m; err.style.display = 'block'; };
+  if (!amt || amt <= 0) return fail('Enter the amount received.');
+  if (date < loan.date) return fail('Payment date is before the loan date.');
+  if (payType === 'principal' && amt > calcDue(loan, date).principal) return fail('This is more than the principal outstanding.');
+  try {
+    setSyncStatus('syncing');
+    await updateDoc(doc(db, 'loans', id), {
+      payments: arrayUnion({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), date, amount: amt, type: payType })
+    });
+    closeModal(); toast('Payment recorded', 'success');
+    setTimeout(() => openDetail(id), 500);
+  } catch(e) {
+    console.error('savePayment error:', e);
+    if (e.code === 'permission-denied') toast('Permission denied — check Firestore rules', 'error');
+    else { toast('Error saving — check connection', 'error'); setSyncStatus('offline'); }
+  }
+}
+
+window.deletePayment = function(id, pid) {
+  showModal(`
+    <div class="modal-title">Remove this payment?</div>
+    <p style="font-size:13px;color:var(--text3);line-height:1.6">Interest and the balance will be recalculated without it.</p>
+    <div class="modal-actions">
+      <div class="btn ghost" style="flex:1" onclick="closeModal()">Cancel</div>
+      <div class="btn danger" style="flex:1" onclick="confirmDeletePayment('${id}','${pid}')">Remove</div>
+    </div>`);
+}
+
+window.confirmDeletePayment = async function(id, pid) {
+  const loan = allLoans.find(l => l.firestoreId === id);
+  if (!loan) return;
+  try {
+    await updateDoc(doc(db, 'loans', id), { payments: (loan.payments || []).filter(p => p.id !== pid) });
+    closeModal(); toast('Payment removed');
+    setTimeout(() => openDetail(id), 500);
+  } catch(e) { console.error(e); toast('Error removing payment', 'error'); }
+}
+
+// ── PRINT RECEIPT ─────────────────────────────────────────────────────────
+window.printReceipt = function(id) {
+  const l = allLoans.find(x => x.firestoreId === id);
+  if (!l) return;
+  const w = window.open('', '_blank');
+  if (!w) { toast('Allow pop-ups to print the receipt', 'error'); return; }
+  const rate = Number(l.rate) || 0;
+  const row = (k, v) => `<tr><td class="k">${k}</td><td>${v}</td></tr>`;
+  const released = l.status === 'RELEASED';
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Bill ${esc(String(l.receiptId))}</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;color:#111;max-width:420px;margin:24px auto;padding:0 16px}
+    h1{margin:0;font-size:22px;text-align:center} .sub{text-align:center;font-size:12px;color:#555;margin-bottom:14px}
+    h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;text-align:center;border-top:2px solid #111;border-bottom:1px solid #111;padding:6px 0;margin:10px 0}
+    table{width:100%;border-collapse:collapse;font-size:14px} td{padding:7px 4px;border-bottom:1px dashed #bbb;vertical-align:top}
+    td.k{color:#555;width:38%} .amt{font-size:18px;font-weight:700}
+    .note{font-size:11px;color:#444;margin-top:14px;line-height:1.5}
+    .sig{display:flex;justify-content:space-between;margin-top:46px;font-size:11px;color:#444}
+    .sig div{border-top:1px solid #111;padding-top:4px;width:44%;text-align:center}
+  </style></head><body>
+    <h1>Mahadev Pawn</h1><div class="sub">Gold Lending</div>
+    <h2>${released ? 'Loan released — receipt' : 'Loan receipt'}</h2>
+    <table>
+      ${row('Bill no.', esc(String(l.receiptId)))}
+      ${row('Date', fmtDate(l.date))}
+      ${row('Customer', esc(l.name))}
+      ${row('Phone', esc(l.phone || '—'))}
+      ${row('Items', esc(l.items || '—'))}
+      ${row('Metal / weight', esc(l.metal || 'gold') + ' · ' + Number(l.weight).toFixed(2) + ' g')}
+      ${row('Loan amount', '<span class="amt">' + fmtMoneyFull(l.amount) + '</span>')}
+      ${rate > 0 ? row('Interest', rate + '% per month') : ''}
+      ${released ? row('Released on', fmtDate(l.releaseDate)) + row('Amount received', '<span class="amt">' + fmtMoneyFull(l.releaseAmount) + '</span>') : ''}
+    </table>
+    <div class="note">${released ? 'Ornaments returned against this bill. Thank you.' : 'Please preserve this receipt carefully. It must be produced to release your ornaments.'}</div>
+    <div class="sig"><div>Customer signature</div><div>For Mahadev Pawn</div></div>
+    <script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script>
+  </body></html>`);
+  w.document.close();
+}
+
+// ── CSV EXPORT ────────────────────────────────────────────────────────────
+window.openExportModal = function() {
+  showModal(`
+    <div class="modal-title">Export to CSV</div>
+    <div class="form-section">
+      <div class="input-row">
+        <div class="input-group"><label class="lbl">Loan date from</label><input type="date" id="ex-from"></div>
+        <div class="input-group"><label class="lbl">Loan date to</label><input type="date" id="ex-to"></div>
+      </div>
+      <div class="input-group">
+        <label class="lbl">Include</label>
+        <select id="ex-status"><option value="all">All loans</option><option value="ACTIVE">Active only</option><option value="RELEASED">Released only</option></select>
+      </div>
+    </div>
+    <p style="font-size:11px;color:var(--text3);margin-top:10px;line-height:1.5">Leave the dates empty to export everything. The file opens in Excel or Google Sheets.</p>
+    <div class="modal-actions">
+      <div class="btn ghost" style="flex:1" onclick="closeModal()">Cancel</div>
+      <div class="btn primary" style="flex:1" onclick="runExport()">Download</div>
+    </div>`);
+}
+
+window.runExport = function() {
+  const from = document.getElementById('ex-from').value, to = document.getElementById('ex-to').value;
+  const st = document.getElementById('ex-status').value;
+  const list = allLoans.filter(l => (st === 'all' || l.status === st) && (!from || l.date >= from) && (!to || l.date <= to))
+                       .sort((a, b) => a.date.localeCompare(b.date));
+  if (!list.length) { toast('No loans match those filters', 'error'); return; }
+  const q = v => { let s = String(v == null ? '' : v); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return '"' + s.replace(/"/g, '""') + '"'; };
+  const head = ['Bill ID','Loan date','Customer','Phone','Items','Metal','Weight (g)','Principal','Rate (% / month)','Principal outstanding','Interest accrued','Interest paid','Interest due','Total due','Status','Vault','Release date','Amount collected','Payments received'];
+  const rows = list.map(l => {
+    const rel = l.status === 'RELEASED';
+    const d = calcDue(l, rel && l.releaseDate ? l.releaseDate : today());
+    const paid = (l.payments || []).reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    return [l.receiptId, l.date, l.name, l.phone, l.items || '', l.metal || 'gold', Number(l.weight).toFixed(2), l.amount, Number(l.rate) || 0,
+            rel ? 0 : d.principal, d.interest, d.interestPaid, rel ? 0 : d.interestDue, rel ? 0 : d.total,
+            l.status, l.vault || '', l.releaseDate || '', rel ? l.releaseAmount : '', paid].map(q).join(',');
+  });
+  const csv = '\uFEFF' + head.map(q).join(',') + '\n' + rows.join('\n');
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = 'mahadev-pawn-loans-' + today() + '.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  closeModal(); toast(list.length + ' loans exported', 'success');
+}
+
+// ── BULK RATE FOR OLD LOANS ───────────────────────────────────────────────
+window.openDefaultRateModal = function() {
+  const n = allLoans.filter(l => l.status === 'ACTIVE' && !(Number(l.rate) > 0)).length;
+  if (!n) { toast('Every active loan already has an interest rate'); return; }
+  let saved = '2'; try { saved = localStorage.getItem('mp_rate') || '2'; } catch(e) {}
+  showModal(`
+    <div class="modal-title">Set rate on old loans</div>
+    <p style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:12px"><strong style="color:var(--text)">${n}</strong> active loans have no interest rate yet. Apply one rate to all of them. You can still change any single loan with Edit.</p>
+    <div class="input-group"><label class="lbl">Rate (% per month)</label><input type="number" id="dr-rate" value="${saved}" step="0.05" min="0.1" inputmode="decimal"></div>
+    <div class="modal-actions">
+      <div class="btn ghost" style="flex:1" onclick="closeModal()">Cancel</div>
+      <div class="btn primary" style="flex:1" onclick="applyDefaultRate()">Apply to ${n}</div>
+    </div>`);
+}
+
+window.applyDefaultRate = async function() {
+  const rate = parseFloat(document.getElementById('dr-rate').value);
+  if (!(rate > 0)) { toast('Enter a rate above 0', 'error'); return; }
+  const targets = allLoans.filter(l => l.status === 'ACTIVE' && !(Number(l.rate) > 0));
+  closeModal(); toast('Updating ' + targets.length + ' loans…');
+  try {
+    setSyncStatus('syncing');
+    for (let i = 0; i < targets.length; i += 20) {
+      await Promise.all(targets.slice(i, i + 20).map(l => updateDoc(doc(db, 'loans', l.firestoreId), { rate })));
+    }
+    toast(targets.length + ' loans updated', 'success');
+  } catch(e) {
+    console.error(e);
+    toast(e.code === 'permission-denied' ? 'Permission denied — check Firestore rules' : 'Some loans could not be updated', 'error');
+  }
+}
+
 window.openDetail = function(firestoreId) {
   const loan = allLoans.find(l => l.firestoreId === firestoreId);
   if (!loan) return;
@@ -1189,6 +1550,9 @@ window.openDetail = function(firestoreId) {
   document.getElementById('detail-topbar-title').textContent = loan.receiptId;
   const s = loan.status==='RELEASED'?'released':loanStatus(loan);
   const days = daysSince(loan.date);
+  const due = loan.status==='ACTIVE' ? calcDue(loan) : null;
+  const interestCard = interestCardHtml(loan, due);
+  const printBtn = `<div class="btn ghost" onclick="printReceipt('${firestoreId}')" style="flex:none;padding:11px"><svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print / save receipt</div>`;
 
   const imgHtml = loan.photo
     ? `<img class="detail-img" src="${loan.photo}" alt="Pledged items" loading="lazy">`
@@ -1199,11 +1563,12 @@ window.openDetail = function(firestoreId) {
       <h3>Mark as released</h3>
       <div class="input-group">
         <label class="lbl">Release date</label>
-        <input type="date" id="cl-date" value="${today()}">
+        <input type="date" id="cl-date" value="${today()}" max="${today()}" onchange="refreshReleaseSuggestion('${firestoreId}')">
       </div>
       <div class="input-group">
         <label class="lbl">Total amount collected (₹)</label>
-        <input type="number" id="cl-amount" placeholder="Principal + Interest" inputmode="numeric">
+        <input type="number" id="cl-amount" value="${(due && due.rate>0) ? due.total : ''}" placeholder="Principal + Interest" inputmode="numeric">
+        <div id="cl-hint" style="font-size:11px;color:var(--text3);line-height:1.5">${releaseHint(due)}</div>
       </div>
       <button class="submit-btn" onclick="clearLoan('${firestoreId}')">
         <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Release &amp; Close
@@ -1255,7 +1620,9 @@ window.openDetail = function(firestoreId) {
       </div>`:''}
       ${loan.status==='RELEASED'&&loan.vault?`<div class="divider"></div><div class="field-k">Was in vault</div><div class="vault-badge ${loan.vault}" style="display:inline-flex;margin-top:4px">${loan.vault==='local'?'Local Vault':'Bank Vault'}</div>`:''}
     </div>
+    ${interestCard}
     ${commsSection}
+    ${printBtn}
     ${clearSection}
     ${loan.status==='ACTIVE'||loan.status==='RELEASED'?`<div class="btn danger" onclick="confirmDelete('${firestoreId}')" style="margin-top:4px"><svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>Delete record</div>`:''}
   `;
@@ -1311,6 +1678,10 @@ window.openEditModal = function() {
           <div class="error-msg" id="ed-err-amount"></div>
         </div>
       </div>
+      <div class="input-group">
+        <label class="lbl">Interest rate (% per month)</label>
+        <input type="number" id="ed-rate" value="${Number(loan.rate)||''}" step="0.05" min="0" inputmode="decimal" placeholder="e.g. 2">
+      </div>
     </div>
     <div class="modal-actions">
       <div class="btn ghost" style="flex:1" onclick="closeModal()">Cancel</div>
@@ -1361,6 +1732,7 @@ window.saveEdit = async function(firestoreId) {
       date,
       items,
       metal,
+      rate: parseFloat((document.getElementById('ed-rate')||{}).value) || 0,
       weight: parseFloat(Number(weight).toFixed(2)),
       amount: parseInt(amount)
     });
@@ -1375,29 +1747,50 @@ window.saveEdit = async function(firestoreId) {
   }
 }
 
-window.clearLoan = async function(firestoreId) {
-  const loan = allLoans.find(l=>l.firestoreId===firestoreId);
+window.clearLoan = function(firestoreId) {
+  const loan = allLoans.find(l => l.firestoreId === firestoreId);
   if (!loan) return;
-  const releaseDate = document.getElementById('cl-date').value;
+  const releaseDate   = document.getElementById('cl-date').value;
   const releaseAmount = document.getElementById('cl-amount').value;
   if (!releaseDate) { toast('Enter a release date','error'); return; }
-  if (!releaseAmount || Number(releaseAmount)<=0) { toast('Enter the total amount collected','error'); return; }
+  if (!releaseAmount || Number(releaseAmount) <= 0) { toast('Enter the total amount collected','error'); return; }
+  const d    = calcDue(loan, releaseDate);
+  const amt  = Number(releaseAmount);
+  const diff = d.rate > 0 ? Math.round(amt - d.total) : 0;
+  showModal(`
+    <div class="modal-title">Release this loan?</div>
+    <div class="card" style="margin-bottom:12px">
+      <div class="field-grid">
+        <div><div class="field-k">Bill</div><div class="field-v" style="font-family:var(--mono)">${esc(String(loan.receiptId))}</div></div>
+        <div><div class="field-k">Customer</div><div class="field-v">${esc(loan.name)}</div></div>
+        <div><div class="field-k">Release date</div><div class="field-v">${fmtDate(releaseDate)}</div></div>
+        <div><div class="field-k">Amount collected</div><div class="field-v money">${fmtMoneyFull(amt)}</div></div>
+      </div>
+    </div>
+    ${diff !== 0 ? `<div style="background:#1C1000;border:1px solid #5A2A00;border-radius:var(--r);padding:10px;margin-bottom:12px;font-size:12px;color:var(--amber);line-height:1.5">
+      Calculated amount is ${fmtMoneyFull(d.total)}. You entered ${diff > 0 ? fmtMoneyFull(diff) + ' more' : fmtMoneyFull(-diff) + ' less'}.
+    </div>` : ''}
+    <p style="font-size:12px;color:var(--text3);line-height:1.6">The loan will be marked as released and moved to history. This cannot be turned back into an active loan.</p>
+    <div class="modal-actions">
+      <div class="btn ghost" style="flex:1" onclick="closeModal()">Cancel</div>
+      <div class="btn primary" style="flex:1" onclick="confirmRelease('${firestoreId}','${releaseDate}',${amt})">Confirm release</div>
+    </div>
+  `);
+}
+
+window.confirmRelease = async function(firestoreId, releaseDate, releaseAmount) {
   try {
     setSyncStatus('syncing');
-    await updateDoc(doc(db,'loans',firestoreId), {
+    await updateDoc(doc(db, 'loans', firestoreId), {
       status: 'RELEASED',
       releaseDate: releaseDate,
       releaseAmount: Number(releaseAmount)
     });
-    closeDetail(); toast('Loan released successfully','success');
+    closeModal(); closeDetail(); toast('Loan released successfully', 'success');
   } catch(e) {
-    console.error('clearLoan error:', e);
-    if (e.code === 'permission-denied') {
-      toast('Permission denied — update Firestore rules','error');
-    } else {
-      toast('Error saving — check connection','error');
-      if (e.code === 'unavailable') setSyncStatus('offline');
-    }
+    console.error('confirmRelease error:', e);
+    if (e.code === 'permission-denied') toast('Permission denied — check Firestore rules', 'error');
+    else { toast('Error saving — check connection', 'error'); setSyncStatus('offline'); }
   }
 }
 
@@ -1483,6 +1876,8 @@ window.submitLoan = async function() {
       status: 'ACTIVE',
       vault: selectedVault,
       metal: document.getElementById('f-metal') ? document.getElementById('f-metal').value : 'gold',
+      rate: parseFloat((document.getElementById('f-rate')||{}).value) || 0,
+      payments: [],
       photo: capturedPhoto || null,
       createdAt: serverTimestamp()
     };
@@ -2234,8 +2629,8 @@ function buildMonthlyReport() {
   const prevDisb    = prevLoans.reduce((s,l)=>s+Number(l.amount),0);
   const curReleased = allLoans.filter(l => l.status==='RELEASED' && l.releaseDate >= cur.start && l.releaseDate <= cur.end);
   const prevReleased= allLoans.filter(l => l.status==='RELEASED' && l.releaseDate >= prev.start && l.releaseDate <= prev.end);
-  const curColl     = curReleased.reduce((s,l)=>s+Number(l.releaseAmount||0),0);
-  const prevColl    = prevReleased.reduce((s,l)=>s+Number(l.releaseAmount||0),0);
+  const curColl     = collectedIn(cur.start, cur.end);
+  const prevColl    = collectedIn(prev.start, prev.end);
   const curGold     = curLoans.reduce((s,l)=>s+Number(l.weight),0);
   const prevGold    = prevLoans.reduce((s,l)=>s+Number(l.weight),0);
 
@@ -2243,7 +2638,7 @@ function buildMonthlyReport() {
   const last6 = Array.from({length:6},(_,i)=>getMonthRange(rptMonthOffset-5+i));
   const trendLoans = last6.map(r=>({l:r.key.slice(5),v:allLoans.filter(l=>inRange(l,r)).length}));
   const trendDisb  = last6.map(r=>({l:r.key.slice(5),v:allLoans.filter(l=>inRange(l,r)).reduce((s,l)=>s+Number(l.amount),0)}));
-  const trendColl  = last6.map(r=>({l:r.key.slice(5),v:allLoans.filter(l=>l.status==='RELEASED'&&l.releaseDate>=r.start&&l.releaseDate<=r.end).reduce((s,l)=>s+Number(l.releaseAmount||0),0)}));
+  const trendColl  = last6.map(r=>({l:r.key.slice(5),v:collectedIn(r.start, r.end)}));
 
   const dN=delta(curNew,prevNew), dD=delta(curDisb,prevDisb), dC=delta(curColl,prevColl);
 
@@ -2530,6 +2925,36 @@ function refreshBankSummary() {
   if (bkMargin) bkMargin.textContent = fmtMoney(Math.max(0, margin));
 }
 
+// Pledge type toggle
+let bkPledgeType = 'customer';
+window.setBkType = function(type) {
+  bkPledgeType = type;
+  const custBtn  = document.getElementById('bk-type-customer');
+  const ownBtn   = document.getElementById('bk-type-own');
+  const custSec  = document.getElementById('bk-customer-section');
+  const ownSec   = document.getElementById('bk-own-section');
+  if (type === 'customer') {
+    custBtn.style.borderColor = '#1A4A8A';
+    custBtn.style.background  = '#0A1A2A';
+    custBtn.querySelector('div').style.color = '#60A8E0';
+    ownBtn.style.borderColor  = 'var(--border)';
+    ownBtn.style.background   = 'var(--surface)';
+    ownBtn.querySelector('div').style.color = 'var(--text2)';
+    custSec.style.display = 'block';
+    ownSec.style.display  = 'none';
+  } else {
+    ownBtn.style.borderColor  = '#4A8A1A';
+    ownBtn.style.background   = '#0A1A00';
+    ownBtn.querySelector('div').style.color = '#80C040';
+    custBtn.style.borderColor = 'var(--border)';
+    custBtn.style.background  = 'var(--surface)';
+    custBtn.querySelector('div').style.color = 'var(--text2)';
+    ownSec.style.display  = 'block';
+    custSec.style.display = 'none';
+    document.getElementById('bk-pawn-preview').style.display = 'none';
+  }
+}
+
 // Live pawn bill preview as user types
 window.previewPawnBill = function() {
   const id = document.getElementById('bk-pawn-id').value.trim();
@@ -2554,20 +2979,28 @@ window.previewPawnBill = function() {
 }
 
 window.addBankPledge = async function() {
-  const pawnBillId = document.getElementById('bk-pawn-id').value.trim();
   const bankBillId = document.getElementById('bk-bank-id').value.trim();
   const date       = document.getElementById('bk-date').value;
   const bankAmount = document.getElementById('bk-amount').value;
+  const isOwn      = bkPledgeType === 'own';
+  const pawnBillId = isOwn ? '' : (document.getElementById('bk-pawn-id')||{value:''}).value.trim();
+  const ownItems   = isOwn ? (document.getElementById('bk-own-items')||{value:''}).value.trim() : '';
 
   let valid = true;
   function setErr(id, msg) {
     const e = document.getElementById(id);
+    if (!e) return;
     if (msg) { e.textContent = msg; e.style.display = 'block'; valid = false; }
     else { e.style.display = 'none'; e.textContent = ''; }
   }
 
-  if (!pawnBillId) setErr('bk-err-pawn', 'Enter the original pawn bill ID.');
-  else setErr('bk-err-pawn', '');
+  if (!isOwn) {
+    if (!pawnBillId) setErr('bk-err-pawn', 'Enter the original pawn bill ID.');
+    else setErr('bk-err-pawn', '');
+  } else {
+    if (!ownItems) setErr('bk-err-items', 'Describe the items being pledged.');
+    else setErr('bk-err-items', '');
+  }
 
   if (!bankBillId) setErr('bk-err-bankid', 'Enter the bank loan bill ID.');
   else setErr('bk-err-bankid', '');
@@ -2577,25 +3010,35 @@ window.addBankPledge = async function() {
 
   if (!valid) return;
 
-  // Warn if pawn bill not found but don't block — might be personal gold
-  const linkedLoan = allLoans.find(l => String(l.receiptId) === pawnBillId);
+  const linkedLoan = !isOwn ? allLoans.find(l => String(l.receiptId) === pawnBillId) : null;
 
   try {
     setSyncStatus('syncing');
     await addDoc(bankCol, {
-      pawnBillId,
+      pledgeType:       isOwn ? 'own' : 'customer',
+      pawnBillId:       isOwn ? null : pawnBillId,
+      ownItems:         isOwn ? ownItems : null,
       bankBillId,
-      date: date || today(),
-      bankAmount: parseInt(bankAmount),
-      linkedCustomer: linkedLoan ? linkedLoan.name : null,
+      date:             date || today(),
+      bankAmount:       parseInt(bankAmount),
+      linkedCustomer:   linkedLoan ? linkedLoan.name : null,
       linkedPawnAmount: linkedLoan ? Number(linkedLoan.amount) : null,
-      createdAt: Date.now()
+      createdAt:        Date.now()
     });
 
     // Reset form
-    ['bk-pawn-id','bk-bank-id','bk-amount'].forEach(id => document.getElementById(id).value = '');
-    document.getElementById('bk-date').value = today();
-    document.getElementById('bk-pawn-preview').style.display = 'none';
+    document.getElementById('bk-bank-id').value = '';
+    document.getElementById('bk-amount').value  = '';
+    document.getElementById('bk-date').value    = today();
+    if (!isOwn) {
+      const pid = document.getElementById('bk-pawn-id');
+      if (pid) pid.value = '';
+      const prev = document.getElementById('bk-pawn-preview');
+      if (prev) prev.style.display = 'none';
+    } else {
+      const oi = document.getElementById('bk-own-items');
+      if (oi) oi.value = '';
+    }
     toast('Bank pledge added', 'success');
   } catch(e) {
     console.error(e);
@@ -2611,9 +3054,10 @@ window.renderBankList = function() {
 
   let list = [...allBankPledges];
   if (q) list = list.filter(p =>
-    String(p.pawnBillId).includes(q) ||
-    String(p.bankBillId).toLowerCase().includes(q) ||
-    (p.linkedCustomer||'').toLowerCase().includes(q)
+    String(p.pawnBillId||'').includes(q) ||
+    String(p.bankBillId||'').toLowerCase().includes(q) ||
+    (p.linkedCustomer||'').toLowerCase().includes(q) ||
+    (p.ownItems||'').toLowerCase().includes(q)
   );
 
   document.getElementById('bk-list-count').textContent = `(${list.length})`;
@@ -2632,15 +3076,21 @@ window.renderBankList = function() {
       <div class="card-header">
         <div>
           <div class="bill-id" style="color:#4090D0">Bank Bill: ${esc(p.bankBillId)}</div>
-          <div class="cust-name">${p.linkedCustomer ? esc(p.linkedCustomer) : '<span style="color:var(--text3);font-size:13px">Personal / own gold</span>'}</div>
+          <div class="cust-name">
+            ${p.pledgeType === 'own'
+              ? `<span style="color:#80C040">🏺 Own gold</span>`
+              : (p.linkedCustomer ? esc(p.linkedCustomer) : '<span style="color:var(--text3);font-size:13px">Customer (unlinked)</span>')}
+          </div>
         </div>
         <div style="font-family:var(--mono);font-size:15px;font-weight:500;color:#4090D0">${fmtMoneyFull(p.bankAmount)}</div>
       </div>
       <div class="divider"></div>
       <div class="field-grid">
-        <div><div class="field-k">Pawn bill ID</div><div class="field-v" style="font-family:var(--mono)">${esc(p.pawnBillId)||'—'}</div></div>
+        ${p.pledgeType === 'own'
+          ? `<div style="grid-column:1/-1"><div class="field-k">Items pledged</div><div class="field-v" style="margin-top:2px">${esc(p.ownItems||'—')}</div></div>`
+          : `<div><div class="field-k">Pawn bill ID</div><div class="field-v" style="font-family:var(--mono)">${esc(p.pawnBillId)||'—'}</div></div>
+             <div><div class="field-k">Pawn amount</div><div class="field-v money">${pawnAmt ? fmtMoneyFull(pawnAmt) : '—'}</div></div>`}
         <div><div class="field-k">Date pledged</div><div class="field-v">${fmtDate(p.date)}</div></div>
-        <div><div class="field-k">Pawn amount</div><div class="field-v money">${pawnAmt ? fmtMoneyFull(pawnAmt) : '—'}</div></div>
         <div><div class="field-k">Your margin</div><div class="field-v" style="color:${margin>=0?'var(--green)':'var(--red)'};font-family:var(--mono)">${margin>=0?'+':''}${fmtMoneyFull(margin)}</div></div>
       </div>
       <div class="card-actions">
@@ -2855,6 +3305,7 @@ onAuthStateChanged(auth, (user) => {
       new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
     document.getElementById('f-date').value = today();
     document.getElementById('f-date').max   = today();
+    try { const r = localStorage.getItem('mp_rate'); if (r) document.getElementById('f-rate').value = r; } catch(e) {}
     const bkDate = document.getElementById('bk-date');
     if (bkDate) { bkDate.value = today(); bkDate.max = today(); }
     // Sync status is managed by the online/offline event listeners only
